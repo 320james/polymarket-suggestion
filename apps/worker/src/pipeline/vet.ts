@@ -75,11 +75,12 @@ export async function vetTrader(
     if (uniqueSettled.length >= maxMarkets) break;
   }
 
-  const settledTrades = uniqueSettled.length > 0
-    ? await api.getTradesForMarkets(input.proxyAddress, uniqueSettled, {
-        chunkSize: 30,
-      })
-    : [];
+  const settledTrades =
+    uniqueSettled.length > 0
+      ? await api.getTradesForMarkets(input.proxyAddress, uniqueSettled, {
+          chunkSize: 30,
+        })
+      : [];
 
   // Step 4: dedup trades. A single tx can carry multiple trades (different assets),
   // so key on (txHash, asset, side, size, price).
@@ -94,7 +95,11 @@ export async function vetTrader(
 
   // Step 5: reconstruct + score.
   const resolved = buildResolvedTrades(trades, redeems);
-  const stats = deriveTraderStats(input.proxyAddress, resolved, input.windowsAppeared);
+  const stats = deriveTraderStats(
+    input.proxyAddress,
+    resolved,
+    input.windowsAppeared,
+  );
   const passed = passesVetting(stats, cfg);
   const trustWeight = passed ? computeTrustWeight(stats, cfg) : null;
 
@@ -102,9 +107,7 @@ export async function vetTrader(
     stats,
     passed,
     trustWeight,
-    vetted: passed && trustWeight != null
-      ? { ...stats, trustWeight }
-      : null,
+    vetted: passed && trustWeight != null ? { ...stats, trustWeight } : null,
     rawTrades: trades.length,
     rawRedeems: redeems.length,
     uniqueSettledMarkets: uniqueSettled.length,

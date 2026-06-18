@@ -11,7 +11,11 @@ export const metadata: Metadata = {
  * Root layout — fixed nav at the top, content in a max-width container.
  * Single-user, single-page-at-a-time browsing so we keep this minimal.
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body className="min-h-screen antialiased">
@@ -37,7 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}

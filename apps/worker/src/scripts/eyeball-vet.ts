@@ -13,7 +13,11 @@
  */
 
 import { DEFAULT_CONFIG } from "@poly/shared";
-import { DataApiClient, type LeaderboardCategory, type LeaderboardWindow } from "@poly/polymarket-api";
+import {
+  DataApiClient,
+  type LeaderboardCategory,
+  type LeaderboardWindow,
+} from "@poly/polymarket-api";
 import { selectCandidates, type Candidate } from "../pipeline/candidates.js";
 import { vetTrader, type VetOutcome } from "../pipeline/vet.js";
 import { log } from "../log.js";
@@ -26,7 +30,10 @@ const WINDOWS = (process.env.WINDOWS ?? "WEEK,MONTH,ALL")
 
 async function main(): Promise<void> {
   const api = new DataApiClient();
-  log.info({ pool: POOL, category: CATEGORY, windows: WINDOWS }, "fetching leaderboard candidates");
+  log.info(
+    { pool: POOL, category: CATEGORY, windows: WINDOWS },
+    "fetching leaderboard candidates",
+  );
 
   const t0 = Date.now();
   const candidates = await selectCandidates(api, {
@@ -34,7 +41,10 @@ async function main(): Promise<void> {
     category: CATEGORY,
     poolSize: POOL,
   });
-  log.info({ count: candidates.length, ms: Date.now() - t0 }, "candidates selected");
+  log.info(
+    { count: candidates.length, ms: Date.now() - t0 },
+    "candidates selected",
+  );
 
   // Process candidates serially so the rate limiter stays well-behaved
   // (parallel here would race the bucket for /trades and /activity).
@@ -64,7 +74,10 @@ async function main(): Promise<void> {
       );
       results.push({ c, v });
     } catch (err) {
-      log.error({ user: c.username, err: (err as Error).message }, "vet failed");
+      log.error(
+        { user: c.username, err: (err as Error).message },
+        "vet failed",
+      );
     }
   }
 
@@ -142,6 +155,9 @@ function short(addr: string): string {
 }
 
 main().catch((err) => {
-  log.error({ err: (err as Error).message, stack: (err as Error).stack }, "fatal");
+  log.error(
+    { err: (err as Error).message, stack: (err as Error).stack },
+    "fatal",
+  );
   process.exit(1);
 });

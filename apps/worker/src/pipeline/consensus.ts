@@ -102,7 +102,9 @@ export async function buildConsensusSignals(
 
   // 4. In parallel, load: market metadata + live midpoints.
   const tokenIds = candidates.map(([t]) => t);
-  const conditionIds = [...new Set(candidates.flatMap(([, rs]) => rs.map((r) => r.conditionId)))];
+  const conditionIds = [
+    ...new Set(candidates.flatMap(([, rs]) => rs.map((r) => r.conditionId))),
+  ];
 
   const [marketCache, midpoints] = await Promise.all([
     getOrFetchMarkets(prisma, gamma, conditionIds),
@@ -128,7 +130,9 @@ export async function buildConsensusSignals(
       continue;
     }
 
-    const holders: HolderPosition[] = holderRows.map((r) => toHolderPosition(r));
+    const holders: HolderPosition[] = holderRows.map((r) =>
+      toHolderPosition(r),
+    );
     const result = scoreConsensus(holders, livePrice, cfg);
 
     // Resolve outcome/index from the position rows (they all agree per

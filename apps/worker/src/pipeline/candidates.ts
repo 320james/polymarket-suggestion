@@ -47,7 +47,12 @@ export async function selectCandidates(
   >();
 
   for (const window of windows) {
-    const rows = await fetchWindow(api, { window, category, orderBy, total: poolSize });
+    const rows = await fetchWindow(api, {
+      window,
+      category,
+      orderBy,
+      total: poolSize,
+    });
     for (const r of rows) {
       const rankNum = Number(r.rank);
       const existing = merged.get(r.proxyWallet);

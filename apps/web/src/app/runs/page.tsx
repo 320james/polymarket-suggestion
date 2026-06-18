@@ -45,7 +45,10 @@ export default async function RunsPage() {
               return (
                 <tr key={r.id}>
                   <td className="px-3 py-2 text-right font-mono">{r.id}</td>
-                  <td className="px-3 py-2 text-zinc-500" title={r.startedAt.toISOString()}>
+                  <td
+                    className="px-3 py-2 text-zinc-500"
+                    title={r.startedAt.toISOString()}
+                  >
                     {fmtRelative(r.startedAt)}
                   </td>
                   <td className="px-3 py-2 text-right font-mono">
@@ -60,12 +63,20 @@ export default async function RunsPage() {
                       <span className="text-red-700">errors</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">{r.candidates}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {r.candidates}
+                  </td>
                   <td className="px-3 py-2 text-right font-mono">{r.vetted}</td>
-                  <td className="px-3 py-2 text-right font-mono">{r.positionsSeen.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right font-mono">{r.firings}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {r.positionsSeen.toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {r.firings}
+                  </td>
                   <td className="px-3 py-2 text-right font-mono">{r.exits}</td>
-                  <td className="px-3 py-2 text-right font-mono">{r.notifications}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {r.notifications}
+                  </td>
                   <td className="px-3 py-2 text-right font-mono">
                     {r.errorCount > 0 ? (
                       <span className="text-red-700">{r.errorCount}</span>
@@ -81,7 +92,10 @@ export default async function RunsPage() {
             })}
             {runs.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-6 text-center text-sm text-zinc-500">
+                <td
+                  colSpan={12}
+                  className="px-3 py-6 text-center text-sm text-zinc-500"
+                >
                   No runs yet.
                 </td>
               </tr>

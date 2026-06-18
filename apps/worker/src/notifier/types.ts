@@ -15,7 +15,12 @@
 import type { Suggestion } from "@prisma/client";
 
 /** Channel identifier persisted in Config.notifyChannel and NotificationLog.channel. */
-export type ChannelName = "TELEGRAM" | "PUSHOVER" | "NTFY" | "EMAIL" | "CONSOLE";
+export type ChannelName =
+  | "TELEGRAM"
+  | "PUSHOVER"
+  | "NTFY"
+  | "EMAIL"
+  | "CONSOLE";
 
 /** Per-trader summary line for the notification body. */
 export interface NotifierTraderLine {

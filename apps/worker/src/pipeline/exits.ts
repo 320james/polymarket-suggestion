@@ -96,19 +96,21 @@ export async function buildExitSignals(
   const midpoints = await clob.getMidpoints(firingTokenIds);
   let tokensSkippedNoPrice = 0;
 
-  const signals: ExitSignal[] = firing.map(({ buy, originalIds, stillHoldingIds }) => {
-    const livePrice = midpoints.get(buy.tokenId) ?? null;
-    if (livePrice == null) tokensSkippedNoPrice++;
-    const goneCount = originalIds.length - stillHoldingIds.length;
-    return {
-      buy,
-      originalHolderIds: originalIds,
-      stillHoldingIds,
-      goneCount,
-      exitFractionObserved: goneCount / originalIds.length,
-      livePrice,
-    };
-  });
+  const signals: ExitSignal[] = firing.map(
+    ({ buy, originalIds, stillHoldingIds }) => {
+      const livePrice = midpoints.get(buy.tokenId) ?? null;
+      if (livePrice == null) tokensSkippedNoPrice++;
+      const goneCount = originalIds.length - stillHoldingIds.length;
+      return {
+        buy,
+        originalHolderIds: originalIds,
+        stillHoldingIds,
+        goneCount,
+        exitFractionObserved: goneCount / originalIds.length,
+        livePrice,
+      };
+    },
+  );
 
   return {
     signals,
@@ -120,7 +122,9 @@ export async function buildExitSignals(
 function parseHolderIds(json: string): string[] {
   try {
     const v = JSON.parse(json);
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    return Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+      : [];
   } catch {
     return [];
   }

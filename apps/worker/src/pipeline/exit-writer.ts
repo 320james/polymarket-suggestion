@@ -102,7 +102,8 @@ export async function writeExitSuggestions(
       const shouldRenotify =
         existing.lastNotifiedConfidence == null
           ? true
-          : confidence - existing.lastNotifiedConfidence >= opts.alertConfidenceStep;
+          : confidence - existing.lastNotifiedConfidence >=
+            opts.alertConfidenceStep;
       active.push({
         exitSuggestionId: existing.id,
         buySuggestionId: buy.id,

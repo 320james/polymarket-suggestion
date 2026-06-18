@@ -45,7 +45,8 @@ const TERMINAL_STATUSES = ["TAKEN", "DISMISSED", "EXITED", "EXPIRED"] as const;
 type TerminalStatus = (typeof TERMINAL_STATUSES)[number];
 
 function assertTerminal(s: string): TerminalStatus {
-  if ((TERMINAL_STATUSES as readonly string[]).includes(s)) return s as TerminalStatus;
+  if ((TERMINAL_STATUSES as readonly string[]).includes(s))
+    return s as TerminalStatus;
   throw new Error(`invalid terminal status: ${s}`);
 }
 
@@ -60,7 +61,10 @@ export async function updateConfig(formData: FormData): Promise<void> {
 
     // operational
     candidatePoolSize: int(formData.get("candidatePoolSize"), 50),
-    leaderboardWindows: str(formData.get("leaderboardWindows"), "WEEK,MONTH,ALL"),
+    leaderboardWindows: str(
+      formData.get("leaderboardWindows"),
+      "WEEK,MONTH,ALL",
+    ),
     category: str(formData.get("category"), "OVERALL"),
     pollIntervalSec: int(formData.get("pollIntervalSec"), 120),
     notifyChannel: str(formData.get("notifyChannel"), "TELEGRAM"),
@@ -96,11 +100,16 @@ export async function updateConfig(formData: FormData): Promise<void> {
   };
 
   // Light sanity bounds — refuse obviously broken values rather than persist them.
-  if (data.pollIntervalSec < 10) throw new Error("pollIntervalSec must be >= 10");
-  if (data.candidatePoolSize < 1) throw new Error("candidatePoolSize must be >= 1");
-  if (data.winRateFloor < 0 || data.winRateFloor > 1) throw new Error("winRateFloor must be in [0,1]");
-  if (data.exitFraction < 0 || data.exitFraction > 1) throw new Error("exitFraction must be in [0,1]");
-  if (data.herdingClusterFrac < 0 || data.herdingClusterFrac > 1) throw new Error("herdingClusterFrac must be in [0,1]");
+  if (data.pollIntervalSec < 10)
+    throw new Error("pollIntervalSec must be >= 10");
+  if (data.candidatePoolSize < 1)
+    throw new Error("candidatePoolSize must be >= 1");
+  if (data.winRateFloor < 0 || data.winRateFloor > 1)
+    throw new Error("winRateFloor must be in [0,1]");
+  if (data.exitFraction < 0 || data.exitFraction > 1)
+    throw new Error("exitFraction must be in [0,1]");
+  if (data.herdingClusterFrac < 0 || data.herdingClusterFrac > 1)
+    throw new Error("herdingClusterFrac must be in [0,1]");
 
   await prisma.config.upsert({
     where: { id: 1 },
@@ -138,11 +147,14 @@ export async function logTakenTrade(formData: FormData): Promise<void> {
   const suggestionId = int(formData.get("suggestionId"), NaN);
   if (!Number.isFinite(suggestionId)) throw new Error("invalid suggestion id");
 
-  const suggestion = await prisma.suggestion.findUnique({ where: { id: suggestionId } });
+  const suggestion = await prisma.suggestion.findUnique({
+    where: { id: suggestionId },
+  });
   if (!suggestion) throw new Error(`suggestion ${suggestionId} not found`);
 
   const side = str(formData.get("side"), "BUY").toUpperCase();
-  if (side !== "BUY" && side !== "SELL") throw new Error("side must be BUY or SELL");
+  if (side !== "BUY" && side !== "SELL")
+    throw new Error("side must be BUY or SELL");
 
   const size = num(formData.get("size"), NaN);
   const fillPrice = num(formData.get("fillPrice"), NaN);

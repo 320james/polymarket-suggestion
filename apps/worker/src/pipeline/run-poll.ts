@@ -31,7 +31,10 @@ import { vetTrader } from "./vet.js";
 import { upsertTrackedTrader } from "./trackers.js";
 import { syncTraderPositions } from "./positions.js";
 import { buildConsensusSignals } from "./consensus.js";
-import { writeBuySuggestions, type WriteSuggestionsRow } from "./suggestion-writer.js";
+import {
+  writeBuySuggestions,
+  type WriteSuggestionsRow,
+} from "./suggestion-writer.js";
 import { buildExitSignals } from "./exits.js";
 import { writeExitSuggestions, type WriteExitsRow } from "./exit-writer.js";
 import { createChannel } from "../notifier/factory.js";
@@ -131,7 +134,11 @@ export async function runPoll(deps: RunPollDeps): Promise<RunPollResult> {
     }
   }
   log.info(
-    { workerRunId: run.id, candidates: candidates.length, passed: passed.length },
+    {
+      workerRunId: run.id,
+      candidates: candidates.length,
+      passed: passed.length,
+    },
     "vet phase complete",
   );
 
@@ -159,7 +166,12 @@ export async function runPoll(deps: RunPollDeps): Promise<RunPollResult> {
   let buysUpdated = 0;
   let buysToNotify: WriteSuggestionsRow[] = [];
   try {
-    const consensus = await buildConsensusSignals(prisma, gamma, clob, config.scoring);
+    const consensus = await buildConsensusSignals(
+      prisma,
+      gamma,
+      clob,
+      config.scoring,
+    );
     const writeResult = await writeBuySuggestions(prisma, consensus.signals, {
       alertConfidenceStep: config.ops.alertConfidenceStep,
     });

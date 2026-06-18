@@ -18,7 +18,9 @@ export function createChannel(name: string): NotifierChannel {
     case "TELEGRAM": {
       const ch = TelegramChannel.fromEnv();
       if (ch) return ch;
-      log.warn("TELEGRAM channel selected but TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID missing — falling back to CONSOLE");
+      log.warn(
+        "TELEGRAM channel selected but TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID missing — falling back to CONSOLE",
+      );
       return new ConsoleChannel();
     }
     case "CONSOLE":
@@ -26,7 +28,10 @@ export function createChannel(name: string): NotifierChannel {
     case "PUSHOVER":
     case "NTFY":
     case "EMAIL":
-      log.warn({ channel: wanted }, "channel not implemented yet — falling back to CONSOLE");
+      log.warn(
+        { channel: wanted },
+        "channel not implemented yet — falling back to CONSOLE",
+      );
       return new ConsoleChannel();
     default:
       log.warn({ channel: name }, "unknown channel — falling back to CONSOLE");

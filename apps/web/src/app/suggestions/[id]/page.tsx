@@ -57,7 +57,9 @@ export default async function SuggestionDetail({
   // Fetch all referenced traders + the market cache row in parallel.
   const [traders, market] = await Promise.all([
     prisma.trackedTrader.findMany({ where: { id: { in: allIds } } }),
-    prisma.market.findUnique({ where: { conditionId: suggestion.conditionId } }),
+    prisma.market.findUnique({
+      where: { conditionId: suggestion.conditionId },
+    }),
   ]);
   const traderById = new Map(traders.map((t) => [t.id, t]));
 
@@ -118,17 +120,26 @@ function Header({
         </Link>
       </div>
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(suggestion.type)}`}>
+        <span
+          className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(suggestion.type)}`}
+        >
           {suggestion.type}
         </span>
-        <span className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(suggestion.status)}`}>
+        <span
+          className={`inline-block rounded border px-2 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(suggestion.status)}`}
+        >
           {suggestion.status}
         </span>
-        <h1 className="text-xl font-semibold tracking-tight">{suggestion.outcome}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {suggestion.outcome}
+        </h1>
       </div>
-      <p className="text-zinc-700 dark:text-zinc-300">{suggestion.marketQuestion}</p>
+      <p className="text-zinc-700 dark:text-zinc-300">
+        {suggestion.marketQuestion}
+      </p>
       <p className="text-xs text-zinc-500">
-        Created {fmtRelative(suggestion.createdAt)} · Updated {fmtRelative(suggestion.updatedAt)}
+        Created {fmtRelative(suggestion.createdAt)} · Updated{" "}
+        {fmtRelative(suggestion.updatedAt)}
         {" · "}
         <a
           href={marketUrl(suggestion.conditionId, market?.slug)}
@@ -143,20 +154,22 @@ function Header({
   );
 }
 
-function MetricsCard({
-  suggestion,
-}: {
-  suggestion: SuggestionWithRelations;
-}) {
+function MetricsCard({ suggestion }: { suggestion: SuggestionWithRelations }) {
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4 lg:grid-cols-7">
         <Metric label="Confidence" value={`${suggestion.confidence}/100`} />
         <Metric label="Raw score" value={fmtNum(suggestion.consensusScore)} />
         <Metric label="Holders" value={String(suggestion.distinctHolders)} />
-        <Metric label="Blended entry" value={fmtCents(suggestion.blendedEntry)} />
+        <Metric
+          label="Blended entry"
+          value={fmtCents(suggestion.blendedEntry)}
+        />
         <Metric label="Live price" value={fmtCents(suggestion.priceAtSignal)} />
-        <Metric label="Slippage" value={fmtSignedCents(suggestion.slippageCents)} />
+        <Metric
+          label="Slippage"
+          value={fmtSignedCents(suggestion.slippageCents)}
+        />
         <Metric
           label="Notifications"
           value={`${suggestion.notifyCount}${suggestion.lastNotifiedConfidence != null ? ` (last @${Math.round(suggestion.lastNotifiedConfidence)})` : ""}`}
@@ -199,7 +212,9 @@ function RationaleCard({
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
         Rationale
       </h2>
-      <p className="text-sm text-zinc-800 dark:text-zinc-200">{suggestion.rationale}</p>
+      <p className="text-sm text-zinc-800 dark:text-zinc-200">
+        {suggestion.rationale}
+      </p>
     </section>
   );
 }
@@ -250,15 +265,30 @@ function TradersSection({
               {traders.map((t) => (
                 <tr key={t.id}>
                   <td className="px-3 py-2">{t.username || "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-zinc-500" title={t.id}>
+                  <td
+                    className="px-3 py-2 font-mono text-xs text-zinc-500"
+                    title={t.id}
+                  >
                     {fmtAddress(t.id)}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtNum(t.trustWeight)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtPct(t.winRate)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtNum(t.profitFactor)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtPct(t.avgRoi)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{t.resolvedTrades}</td>
-                  <td className="px-3 py-2 text-right font-mono">{t.windowsAppeared}/3</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {fmtNum(t.trustWeight)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {fmtPct(t.winRate)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {fmtNum(t.profitFactor)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {fmtPct(t.avgRoi)}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {t.resolvedTrades}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {t.windowsAppeared}/3
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -274,7 +304,10 @@ function RelatedSection({
 }: {
   suggestion: SuggestionWithRelations;
 }) {
-  const items: Array<{ label: string; row: SuggestionWithRelations["relatedSuggestion"] }> = [];
+  const items: Array<{
+    label: string;
+    row: SuggestionWithRelations["relatedSuggestion"];
+  }> = [];
   if (suggestion.relatedSuggestion) {
     items.push({ label: "Triggering BUY", row: suggestion.relatedSuggestion });
   }
@@ -291,12 +324,19 @@ function RelatedSection({
         {items.map((it) =>
           it.row ? (
             <li key={`${it.label}-${it.row.id}`}>
-              <Link href={`/suggestions/${it.row.id}`} className="hover:underline">
+              <Link
+                href={`/suggestions/${it.row.id}`}
+                className="hover:underline"
+              >
                 <span className="text-zinc-500">{it.label}:</span>{" "}
-                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(it.row.type)}`}>
+                <span
+                  className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(it.row.type)}`}
+                >
                   {it.row.type}
                 </span>{" "}
-                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(it.row.status)}`}>
+                <span
+                  className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(it.row.status)}`}
+                >
                   {it.row.status}
                 </span>{" "}
                 #{it.row.id} — {it.row.outcome}
@@ -318,10 +358,14 @@ function NotificationsTable({
     <section className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <header className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <h2 className="text-base font-semibold">Notifications</h2>
-        <p className="text-xs text-zinc-500">{notifications.length} attempt{notifications.length === 1 ? "" : "s"}</p>
+        <p className="text-xs text-zinc-500">
+          {notifications.length} attempt{notifications.length === 1 ? "" : "s"}
+        </p>
       </header>
       {notifications.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-zinc-500">No notification attempts yet.</p>
+        <p className="px-4 py-6 text-sm text-zinc-500">
+          No notification attempts yet.
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -337,11 +381,16 @@ function NotificationsTable({
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {notifications.map((n) => (
                 <tr key={n.id}>
-                  <td className="px-3 py-2 text-zinc-500" title={n.sentAt.toISOString()}>
+                  <td
+                    className="px-3 py-2 text-zinc-500"
+                    title={n.sentAt.toISOString()}
+                  >
                     {fmtRelative(n.sentAt)}
                   </td>
                   <td className="px-3 py-2">{n.channel}</td>
-                  <td className="px-3 py-2 text-right font-mono">{n.attempt}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {n.attempt}
+                  </td>
                   <td className="px-3 py-2">
                     {n.success ? (
                       <span className="text-emerald-700">ok</span>
@@ -389,17 +438,28 @@ function TakenTradesSection({
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {takenTrades.map((t) => (
               <tr key={t.id}>
-                <td className="px-3 py-2 text-zinc-500">{fmtRelative(t.takenAt)}</td>
+                <td className="px-3 py-2 text-zinc-500">
+                  {fmtRelative(t.takenAt)}
+                </td>
                 <td className="px-3 py-2">{t.side}</td>
-                <td className="px-3 py-2 text-right font-mono">{t.size.toLocaleString()}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtCents(t.fillPrice)}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtCents(t.closedPrice)}</td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {t.size.toLocaleString()}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtCents(t.fillPrice)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtCents(t.closedPrice)}
+                </td>
                 <td className="px-3 py-2 text-right font-mono">
                   {t.realizedPnl != null ? `$${t.realizedPnl.toFixed(2)}` : "–"}
                 </td>
                 <td className="px-3 py-2 text-right">
                   {t.closedAt == null && (
-                    <form action={closeTakenTrade} className="flex items-center justify-end gap-1">
+                    <form
+                      action={closeTakenTrade}
+                      className="flex items-center justify-end gap-1"
+                    >
                       <input type="hidden" name="tradeId" value={t.id} />
                       <input
                         type="number"
@@ -429,12 +489,10 @@ function TakenTradesSection({
   );
 }
 
-function ActionsCard({
-  suggestion,
-}: {
-  suggestion: SuggestionWithRelations;
-}) {
-  const isTerminal = !(["NEW", "NOTIFIED"] as string[]).includes(suggestion.status);
+function ActionsCard({ suggestion }: { suggestion: SuggestionWithRelations }) {
+  const isTerminal = !(["NEW", "NOTIFIED"] as string[]).includes(
+    suggestion.status,
+  );
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -486,7 +544,13 @@ function ActionsCard({
           defaultValue={suggestion.type === "EXIT" ? "SELL" : "BUY"}
           options={["BUY", "SELL"]}
         />
-        <FormNumeric label="Size" name="size" step={1} min={1} placeholder="shares" />
+        <FormNumeric
+          label="Size"
+          name="size"
+          step={1}
+          min={1}
+          placeholder="shares"
+        />
         <FormNumeric
           label="Fill price"
           name="fillPrice"
@@ -521,7 +585,9 @@ function FormSelect({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <select
         name={name}
         defaultValue={defaultValue}
@@ -556,7 +622,9 @@ function FormNumeric({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <input
         type="number"
         name={name}

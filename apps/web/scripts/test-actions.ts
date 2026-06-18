@@ -19,69 +19,83 @@ async function main() {
   // ── 1. Config: flip kill switch + change poll interval, then revert ─────
   const before = await prisma.config.findUnique({ where: { id: 1 } });
   if (!before) throw new Error("no Config row");
-  console.log("[1a] before:", { kill: before.killSwitch, poll: before.pollIntervalSec });
+  console.log("[1a] before:", {
+    kill: before.killSwitch,
+    poll: before.pollIntervalSec,
+  });
 
-  await updateConfig(fd({
-    killSwitch: "on",
-    pollIntervalSec: 200,
-    candidatePoolSize: before.candidatePoolSize,
-    leaderboardWindows: before.leaderboardWindows,
-    category: before.category,
-    notifyChannel: before.notifyChannel,
-    alertConfidenceStep: before.alertConfidenceStep,
-    exitFraction: before.exitFraction,
-    minResolvedTrades: before.minResolvedTrades,
-    winRateFloor: before.winRateFloor,
-    minProfitFactor: before.minProfitFactor,
-    minWindowsAppeared: before.minWindowsAppeared,
-    pfTarget: before.pfTarget,
-    confidenceK: before.confidenceK,
-    favoriteOddsThreshold: before.favoriteOddsThreshold,
-    minDistinctHolders: before.minDistinctHolders,
-    consensusScoreMin: before.consensusScoreMin,
-    recencyHalfLifeHours: before.recencyHalfLifeHours,
-    maxSlippageCents: before.maxSlippageCents,
-    herdingWindowMinutes: before.herdingWindowMinutes,
-    herdingClusterFrac: before.herdingClusterFrac,
-    herdingSizeCv: before.herdingSizeCv,
-    herdingPenalty: before.herdingPenalty,
-    scoreTarget: before.scoreTarget,
-    holderTarget: before.holderTarget,
-  }));
+  await updateConfig(
+    fd({
+      killSwitch: "on",
+      pollIntervalSec: 200,
+      candidatePoolSize: before.candidatePoolSize,
+      leaderboardWindows: before.leaderboardWindows,
+      category: before.category,
+      notifyChannel: before.notifyChannel,
+      alertConfidenceStep: before.alertConfidenceStep,
+      exitFraction: before.exitFraction,
+      minResolvedTrades: before.minResolvedTrades,
+      winRateFloor: before.winRateFloor,
+      minProfitFactor: before.minProfitFactor,
+      minWindowsAppeared: before.minWindowsAppeared,
+      pfTarget: before.pfTarget,
+      confidenceK: before.confidenceK,
+      favoriteOddsThreshold: before.favoriteOddsThreshold,
+      minDistinctHolders: before.minDistinctHolders,
+      consensusScoreMin: before.consensusScoreMin,
+      recencyHalfLifeHours: before.recencyHalfLifeHours,
+      maxSlippageCents: before.maxSlippageCents,
+      herdingWindowMinutes: before.herdingWindowMinutes,
+      herdingClusterFrac: before.herdingClusterFrac,
+      herdingSizeCv: before.herdingSizeCv,
+      herdingPenalty: before.herdingPenalty,
+      scoreTarget: before.scoreTarget,
+      holderTarget: before.holderTarget,
+    }),
+  );
 
   const mid = await prisma.config.findUnique({ where: { id: 1 } });
-  console.log("[1b] after  :", { kill: mid?.killSwitch, poll: mid?.pollIntervalSec });
-  if (!mid?.killSwitch || mid.pollIntervalSec !== 200) throw new Error("config write failed");
+  console.log("[1b] after  :", {
+    kill: mid?.killSwitch,
+    poll: mid?.pollIntervalSec,
+  });
+  if (!mid?.killSwitch || mid.pollIntervalSec !== 200)
+    throw new Error("config write failed");
 
-  await updateConfig(fd({
-    killSwitch: "",
-    pollIntervalSec: before.pollIntervalSec,
-    candidatePoolSize: before.candidatePoolSize,
-    leaderboardWindows: before.leaderboardWindows,
-    category: before.category,
-    notifyChannel: before.notifyChannel,
-    alertConfidenceStep: before.alertConfidenceStep,
-    exitFraction: before.exitFraction,
-    minResolvedTrades: before.minResolvedTrades,
-    winRateFloor: before.winRateFloor,
-    minProfitFactor: before.minProfitFactor,
-    minWindowsAppeared: before.minWindowsAppeared,
-    pfTarget: before.pfTarget,
-    confidenceK: before.confidenceK,
-    favoriteOddsThreshold: before.favoriteOddsThreshold,
-    minDistinctHolders: before.minDistinctHolders,
-    consensusScoreMin: before.consensusScoreMin,
-    recencyHalfLifeHours: before.recencyHalfLifeHours,
-    maxSlippageCents: before.maxSlippageCents,
-    herdingWindowMinutes: before.herdingWindowMinutes,
-    herdingClusterFrac: before.herdingClusterFrac,
-    herdingSizeCv: before.herdingSizeCv,
-    herdingPenalty: before.herdingPenalty,
-    scoreTarget: before.scoreTarget,
-    holderTarget: before.holderTarget,
-  }));
+  await updateConfig(
+    fd({
+      killSwitch: "",
+      pollIntervalSec: before.pollIntervalSec,
+      candidatePoolSize: before.candidatePoolSize,
+      leaderboardWindows: before.leaderboardWindows,
+      category: before.category,
+      notifyChannel: before.notifyChannel,
+      alertConfidenceStep: before.alertConfidenceStep,
+      exitFraction: before.exitFraction,
+      minResolvedTrades: before.minResolvedTrades,
+      winRateFloor: before.winRateFloor,
+      minProfitFactor: before.minProfitFactor,
+      minWindowsAppeared: before.minWindowsAppeared,
+      pfTarget: before.pfTarget,
+      confidenceK: before.confidenceK,
+      favoriteOddsThreshold: before.favoriteOddsThreshold,
+      minDistinctHolders: before.minDistinctHolders,
+      consensusScoreMin: before.consensusScoreMin,
+      recencyHalfLifeHours: before.recencyHalfLifeHours,
+      maxSlippageCents: before.maxSlippageCents,
+      herdingWindowMinutes: before.herdingWindowMinutes,
+      herdingClusterFrac: before.herdingClusterFrac,
+      herdingSizeCv: before.herdingSizeCv,
+      herdingPenalty: before.herdingPenalty,
+      scoreTarget: before.scoreTarget,
+      holderTarget: before.holderTarget,
+    }),
+  );
   const restored = await prisma.config.findUnique({ where: { id: 1 } });
-  console.log("[1c] restored:", { kill: restored?.killSwitch, poll: restored?.pollIntervalSec });
+  console.log("[1c] restored:", {
+    kill: restored?.killSwitch,
+    poll: restored?.pollIntervalSec,
+  });
   if (restored?.killSwitch) throw new Error("kill switch did not flip back");
 
   // ── 2. setSuggestionStatus: DISMISS #10 ──────────────────────────────────
@@ -91,26 +105,39 @@ async function main() {
   if (s10?.status !== "DISMISSED") throw new Error("dismiss failed");
 
   // ── 3. logTakenTrade on #11 ──────────────────────────────────────────────
-  await logTakenTrade(fd({
-    suggestionId: 11,
-    side: "BUY",
-    size: 100,
-    fillPrice: 0.27,
-  }));
+  await logTakenTrade(
+    fd({
+      suggestionId: 11,
+      side: "BUY",
+      size: 100,
+      fillPrice: 0.27,
+    }),
+  );
   const s11 = await prisma.suggestion.findUnique({
     where: { id: 11 },
     include: { takenTrades: true },
   });
-  console.log("[3 ] suggestion 11:", s11?.status, "trades:", s11?.takenTrades.length);
+  console.log(
+    "[3 ] suggestion 11:",
+    s11?.status,
+    "trades:",
+    s11?.takenTrades.length,
+  );
   if (s11?.status !== "TAKEN" || s11.takenTrades.length === 0) {
     throw new Error("log-fill failed");
   }
   const trade = s11.takenTrades[0]!;
-  console.log("    trade:", { side: trade.side, size: trade.size, fill: trade.fillPrice });
+  console.log("    trade:", {
+    side: trade.side,
+    size: trade.size,
+    fill: trade.fillPrice,
+  });
 
   // ── 4. closeTakenTrade ───────────────────────────────────────────────────
   await closeTakenTrade(fd({ tradeId: trade.id, closedPrice: 0.42 }));
-  const closed = await prisma.takenTrade.findUnique({ where: { id: trade.id } });
+  const closed = await prisma.takenTrade.findUnique({
+    where: { id: trade.id },
+  });
   console.log("[4 ] closed:", {
     closedPrice: closed?.closedPrice,
     realizedPnl: closed?.realizedPnl,
@@ -133,12 +160,14 @@ async function main() {
   // ── 6. Validation: out-of-range fillPrice should throw ───────────────────
   threw = false;
   try {
-    await logTakenTrade(fd({
-      suggestionId: 12,
-      side: "BUY",
-      size: 10,
-      fillPrice: 1.5,
-    }));
+    await logTakenTrade(
+      fd({
+        suggestionId: 12,
+        side: "BUY",
+        size: 10,
+        fillPrice: 1.5,
+      }),
+    );
   } catch (e) {
     threw = true;
     console.log("[6a] correctly rejected fillPrice=1.5:", (e as Error).message);

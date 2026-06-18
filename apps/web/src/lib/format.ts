@@ -56,7 +56,9 @@ export function parseIdsJson(json: string | null | undefined): string[] {
   if (!json) return [];
   try {
     const v = JSON.parse(json);
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    return Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+      : [];
   } catch {
     return [];
   }
@@ -90,7 +92,10 @@ export function typeBadgeClass(t: string): string {
 }
 
 /** Polymarket UI URL for a market. */
-export function marketUrl(conditionId: string, slug: string | null | undefined): string {
+export function marketUrl(
+  conditionId: string,
+  slug: string | null | undefined,
+): string {
   if (slug) return `https://polymarket.com/event/${slug}`;
   return `https://polymarket.com/market/${conditionId}`;
 }

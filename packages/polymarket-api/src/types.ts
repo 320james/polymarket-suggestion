@@ -147,8 +147,8 @@ export interface GammaMarket {
   question: string;
   slug: string | null;
   endDate: Date | null;
-  outcomes: string[];          // e.g. ["Yes","No"]
-  tokens: GammaTokenInfo[];    // aligned with outcomes (same index)
+  outcomes: string[]; // e.g. ["Yes","No"]
+  tokens: GammaTokenInfo[]; // aligned with outcomes (same index)
   active: boolean;
   closed: boolean;
   negativeRisk: boolean;
@@ -187,5 +187,7 @@ export interface ClobPricesItem {
 }
 
 /** POST `/prices` response → `{ "<token_id>": { "BUY": "0.51", "SELL": "0.53" } }`. */
-export type ClobPricesResponse = Record<string, Partial<Record<"BUY" | "SELL", string>>>;
-
+export type ClobPricesResponse = Record<
+  string,
+  Partial<Record<"BUY" | "SELL", string>>
+>;

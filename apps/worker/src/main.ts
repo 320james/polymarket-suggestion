@@ -57,7 +57,10 @@ async function main(): Promise<void> {
     try {
       cfg = await loadConfig(prisma);
     } catch (err) {
-      log.error({ err: (err as Error).message }, "config load failed — retrying in 30s");
+      log.error(
+        { err: (err as Error).message },
+        "config load failed — retrying in 30s",
+      );
       await abortableSleep(30_000, (cancel) => {
         wakeFromSleep = cancel;
       });
@@ -69,7 +72,10 @@ async function main(): Promise<void> {
       await runPoll({ prisma, api, gamma, clob, config: cfg });
     } catch (err) {
       // runPoll catches everything internally; this is defensive.
-      log.error({ err: (err as Error).message }, "poll escaped its error boundary");
+      log.error(
+        { err: (err as Error).message },
+        "poll escaped its error boundary",
+      );
     }
 
     if (RUN_ONCE || shuttingDown) break;
@@ -92,7 +98,10 @@ async function main(): Promise<void> {
  * callback is invoked. Used by the loop so SIGINT can interrupt a long
  * wait between polls.
  */
-function abortableSleep(ms: number, register: (cancel: () => void) => void): Promise<void> {
+function abortableSleep(
+  ms: number,
+  register: (cancel: () => void) => void,
+): Promise<void> {
   return new Promise<void>((resolve) => {
     const t = setTimeout(resolve, ms);
     register(() => {
@@ -103,6 +112,9 @@ function abortableSleep(ms: number, register: (cancel: () => void) => void): Pro
 }
 
 main().catch((err) => {
-  log.error({ err: (err as Error).message, stack: (err as Error).stack }, "fatal");
+  log.error(
+    { err: (err as Error).message, stack: (err as Error).stack },
+    "fatal",
+  );
   process.exit(1);
 });

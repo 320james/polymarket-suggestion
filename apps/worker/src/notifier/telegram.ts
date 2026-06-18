@@ -53,7 +53,11 @@ export class TelegramChannel implements NotifierChannel {
         }),
       });
     } catch (err) {
-      return { ok: false, error: `network: ${(err as Error).message}`, retryable: true };
+      return {
+        ok: false,
+        error: `network: ${(err as Error).message}`,
+        retryable: true,
+      };
     }
 
     if (res.ok) return { ok: true };

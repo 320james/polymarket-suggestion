@@ -28,7 +28,9 @@ function signedCents(c: number): string {
 
 /** Trader identity: prefer username, fall back to truncated proxy address. */
 function traderId(t: NotifierTraderLine): string {
-  return t.username || `${t.proxyAddress.slice(0, 6)}…${t.proxyAddress.slice(-4)}`;
+  return (
+    t.username || `${t.proxyAddress.slice(0, 6)}…${t.proxyAddress.slice(-4)}`
+  );
 }
 
 function fmtTraderMd(t: NotifierTraderLine): string {
@@ -50,7 +52,11 @@ function fmtTraderPlain(t: NotifierTraderLine): string {
 export function formatTelegramBody(p: NotifierPayload): string {
   const s = p.suggestion;
   const isBuy = s.type === "BUY";
-  const titleEmoji = isBuy ? (p.reason === "CONFIDENCE_RISE" ? "📈" : "🟢") : "🔴";
+  const titleEmoji = isBuy
+    ? p.reason === "CONFIDENCE_RISE"
+      ? "📈"
+      : "🟢"
+    : "🔴";
   const titleLabel = isBuy
     ? p.reason === "CONFIDENCE_RISE"
       ? "BUY \\(stronger\\)"
@@ -61,13 +67,15 @@ export function formatTelegramBody(p: NotifierPayload): string {
   const alreadyRanLine = s.alreadyRan
     ? `\n⚠ *ALREADY RAN* — slippage ${slip} exceeds gate\\.`
     : "";
-  const herdingLine = s.herdingPenalty < 1
-    ? `\n⚠ *Herding penalty applied* \\(x${md2Escape(s.herdingPenalty.toFixed(2))}\\)`
-    : "";
+  const herdingLine =
+    s.herdingPenalty < 1
+      ? `\n⚠ *Herding penalty applied* \\(x${md2Escape(s.herdingPenalty.toFixed(2))}\\)`
+      : "";
 
-  const tradersBlock = p.traders.length === 0
-    ? "_no current vetted holders_"
-    : p.traders.map((t) => `• ${fmtTraderMd(t)}`).join("\n");
+  const tradersBlock =
+    p.traders.length === 0
+      ? "_no current vetted holders_"
+      : p.traders.map((t) => `• ${fmtTraderMd(t)}`).join("\n");
 
   const lines = [
     `${titleEmoji} *${titleLabel}* — ${md2Escape(s.outcome)}`,
@@ -95,17 +103,23 @@ export function formatPlainBody(p: NotifierPayload): string {
   const s = p.suggestion;
   const isBuy = s.type === "BUY";
   const label = isBuy
-    ? p.reason === "CONFIDENCE_RISE" ? "BUY (stronger)" : "BUY"
+    ? p.reason === "CONFIDENCE_RISE"
+      ? "BUY (stronger)"
+      : "BUY"
     : "EXIT";
 
-  const alreadyRan = s.alreadyRan ? "\n⚠ ALREADY RAN — slippage exceeds gate." : "";
-  const herding = s.herdingPenalty < 1
-    ? `\n⚠ Herding penalty applied (x${s.herdingPenalty.toFixed(2)})`
+  const alreadyRan = s.alreadyRan
+    ? "\n⚠ ALREADY RAN — slippage exceeds gate."
     : "";
+  const herding =
+    s.herdingPenalty < 1
+      ? `\n⚠ Herding penalty applied (x${s.herdingPenalty.toFixed(2)})`
+      : "";
 
-  const tradersBlock = p.traders.length === 0
-    ? "  (no current vetted holders)"
-    : p.traders.map(fmtTraderPlain).join("\n");
+  const tradersBlock =
+    p.traders.length === 0
+      ? "  (no current vetted holders)"
+      : p.traders.map(fmtTraderPlain).join("\n");
 
   return [
     `${label} — ${s.outcome}`,

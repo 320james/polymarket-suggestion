@@ -29,9 +29,10 @@ import { log } from "../log.js";
 // swisstony from our vet run — known to have many open positions
 const DEFAULT_USER = "0x204f72f35326db932158cba6adff0b9a1da95e14";
 
-const USER = (process.env.USER && process.env.USER.startsWith("0x"))
-  ? process.env.USER
-  : DEFAULT_USER;
+const USER =
+  process.env.USER && process.env.USER.startsWith("0x")
+    ? process.env.USER
+    : DEFAULT_USER;
 const FORCE = process.env.FORCE === "1";
 const LIMIT = Number(process.env.LIMIT ?? 15);
 
@@ -97,14 +98,25 @@ function printTable(
   midpoints: Map<string, number | null>,
   prices: Map<string, { BUY: number | null; SELL: number | null }>,
 ): void {
-  const header = ["question", "outcome", "size", "avg", "bid", "mid", "ask", "spd¢", "match"];
+  const header = [
+    "question",
+    "outcome",
+    "size",
+    "avg",
+    "bid",
+    "mid",
+    "ask",
+    "spd¢",
+    "match",
+  ];
   const data = positions.map((p) => {
     const m = markets.get(p.conditionId);
     const mid = midpoints.get(p.asset) ?? null;
     const ba = prices.get(p.asset) ?? { BUY: null, SELL: null };
-    const spreadC = ba.BUY != null && ba.SELL != null
-      ? Math.round((ba.SELL - ba.BUY) * 100)
-      : null;
+    const spreadC =
+      ba.BUY != null && ba.SELL != null
+        ? Math.round((ba.SELL - ba.BUY) * 100)
+        : null;
     // Confirm Gamma's tokens line up with the position's asset id.
     const tokenMatch = m
       ? (m as any).tokens?.some(
@@ -129,7 +141,8 @@ function printTable(
     Math.max(h.length, ...data.map((r) => r[i]!.length)),
   );
   const sep = "  ";
-  const fmtRow = (cells: string[]) => cells.map((c, i) => c.padEnd(widths[i]!)).join(sep);
+  const fmtRow = (cells: string[]) =>
+    cells.map((c, i) => c.padEnd(widths[i]!)).join(sep);
 
   const out = [
     "",
@@ -155,6 +168,9 @@ function truncate(s: string, n: number): string {
 }
 
 main().catch((err) => {
-  log.error({ err: (err as Error).message, stack: (err as Error).stack }, "fatal");
+  log.error(
+    { err: (err as Error).message, stack: (err as Error).stack },
+    "fatal",
+  );
   process.exit(1);
 });

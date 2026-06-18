@@ -53,7 +53,9 @@ const WINDOWS = (process.env.WINDOWS ?? "WEEK,MONTH,ALL")
   .map((s) => s.trim().toUpperCase()) as LeaderboardWindow[];
 const ALERT_STEP = Number(process.env.ALERT_STEP ?? 10);
 /** Override scoring.minDistinctHolders for demo runs with a small vetted pool. */
-const MIN_HOLDERS = process.env.MIN_HOLDERS ? Number(process.env.MIN_HOLDERS) : null;
+const MIN_HOLDERS = process.env.MIN_HOLDERS
+  ? Number(process.env.MIN_HOLDERS)
+  : null;
 /** Override scoring.consensusScoreMin for demo runs. */
 const SCORE_MIN = process.env.SCORE_MIN ? Number(process.env.SCORE_MIN) : null;
 /** Skip the vet+sync phases (assumes DB already populated). */
@@ -74,14 +76,20 @@ async function main(): Promise<void> {
   if (SKIP_VET) {
     log.info("SKIP_VET=1 — reusing DB state, going straight to consensus");
   } else {
-    log.info({ pool: POOL, category: CATEGORY, windows: WINDOWS }, "fetching candidates");
+    log.info(
+      { pool: POOL, category: CATEGORY, windows: WINDOWS },
+      "fetching candidates",
+    );
     const tCand = Date.now();
     const candidates = await selectCandidates(api, {
       windows: WINDOWS,
       category: CATEGORY,
       poolSize: POOL,
     });
-    log.info({ count: candidates.length, ms: Date.now() - tCand }, "candidates selected");
+    log.info(
+      { count: candidates.length, ms: Date.now() - tCand },
+      "candidates selected",
+    );
 
     // ─── Phase 2: vet + persist (serial; rate-limit safe) ───────────────────
     const passed: Candidate[] = [];
@@ -103,7 +111,10 @@ async function main(): Promise<void> {
             n: `${i + 1}/${candidates.length}`,
             user: c.username || c.proxyWallet,
             passed: outcome.passed,
-            trustW: outcome.trustWeight != null ? +outcome.trustWeight.toFixed(3) : null,
+            trustW:
+              outcome.trustWeight != null
+                ? +outcome.trustWeight.toFixed(3)
+                : null,
             resolved: outcome.resolvedTrades,
             ms: Date.now() - t0,
           },
@@ -111,7 +122,10 @@ async function main(): Promise<void> {
         );
         if (outcome.passed) passed.push(c);
       } catch (err) {
-        log.error({ user: c.username, err: (err as Error).message }, "vet failed");
+        log.error(
+          { user: c.username, err: (err as Error).message },
+          "vet failed",
+        );
       }
     }
     log.info({ passed: passed.length }, "vet phase complete");
@@ -147,8 +161,13 @@ async function main(): Promise<void> {
     ...(MIN_HOLDERS != null ? { minDistinctHolders: MIN_HOLDERS } : {}),
     ...(SCORE_MIN != null ? { consensusScoreMin: SCORE_MIN } : {}),
   };
-  if (MIN_HOLDERS != null) log.info({ minHolders: MIN_HOLDERS }, "using overridden minDistinctHolders");
-  if (SCORE_MIN != null) log.info({ scoreMin: SCORE_MIN }, "using overridden consensusScoreMin");
+  if (MIN_HOLDERS != null)
+    log.info(
+      { minHolders: MIN_HOLDERS },
+      "using overridden minDistinctHolders",
+    );
+  if (SCORE_MIN != null)
+    log.info({ scoreMin: SCORE_MIN }, "using overridden consensusScoreMin");
   const tCons = Date.now();
   const consensus = await buildConsensusSignals(prisma, gamma, clob, cfg);
   log.info(
@@ -228,60 +247,96 @@ async function loadOpenBuys(prisma: ReturnType<typeof getPrisma>) {
   });
 }
 
-function printTokenTable(signals: Awaited<ReturnType<typeof buildConsensusSignals>>["signals"]): void {
+function printTokenTable(
+  signals: Awaited<ReturnType<typeof buildConsensusSignals>>["signals"],
+): void {
   if (signals.length === 0) {
-    process.stdout.write("\n(no tokens met the ≥2 vetted holder threshold)\n\n");
+    process.stdout.write(
+      "\n(no tokens met the ≥2 vetted holder threshold)\n\n",
+    );
     return;
   }
   // Order by raw score so the most interesting are at the top regardless
   // of whether they fired.
-  const sorted = [...signals].sort((a, b) => b.result.rawScore - a.result.rawScore);
+  const sorted = [...signals].sort(
+    (a, b) => b.result.rawScore - a.result.rawScore,
+  );
 
-  const header = ["question", "outcome", "n", "score", "conf", "blendC", "liveC", "slipC", "herd", "fired"];
-  const data = sorted.slice(0, 25).map((s) => [
-    truncate(s.marketQuestion, 36),
-    s.outcome.slice(0, 7),
-    String(s.result.distinctHolders),
-    s.result.rawScore.toFixed(2),
-    String(s.result.confidence),
-    (s.result.blendedEntry * 100).toFixed(0),
-    (s.livePrice * 100).toFixed(0),
-    (s.result.slippageCents >= 0 ? "+" : "") + String(s.result.slippageCents),
-    s.result.herdingPenalty < 1 ? "✗" : "·",
-    s.result.fired ? "✓" : "·",
-  ]);
+  const header = [
+    "question",
+    "outcome",
+    "n",
+    "score",
+    "conf",
+    "blendC",
+    "liveC",
+    "slipC",
+    "herd",
+    "fired",
+  ];
+  const data = sorted
+    .slice(0, 25)
+    .map((s) => [
+      truncate(s.marketQuestion, 36),
+      s.outcome.slice(0, 7),
+      String(s.result.distinctHolders),
+      s.result.rawScore.toFixed(2),
+      String(s.result.confidence),
+      (s.result.blendedEntry * 100).toFixed(0),
+      (s.livePrice * 100).toFixed(0),
+      (s.result.slippageCents >= 0 ? "+" : "") + String(s.result.slippageCents),
+      s.result.herdingPenalty < 1 ? "✗" : "·",
+      s.result.fired ? "✓" : "·",
+    ]);
 
-  const widths = header.map((h, i) => Math.max(h.length, ...data.map((r) => r[i]!.length)));
-  const fmtRow = (r: string[]) => r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
+  const widths = header.map((h, i) =>
+    Math.max(h.length, ...data.map((r) => r[i]!.length)),
+  );
+  const fmtRow = (r: string[]) =>
+    r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
 
   process.stdout.write(
     "\n─── CONSENSUS — top 25 tokens by raw score ──────────────────────────\n" +
-      fmtRow(header) + "\n" +
-      fmtRow(widths.map((w) => "─".repeat(w))) + "\n" +
-      data.map(fmtRow).join("\n") + "\n" +
+      fmtRow(header) +
+      "\n" +
+      fmtRow(widths.map((w) => "─".repeat(w))) +
+      "\n" +
+      data.map(fmtRow).join("\n") +
+      "\n" +
       (sorted.length > 25 ? `\n  … (${sorted.length - 25} more)\n` : "") +
       `\nTotals: ${sorted.length} considered, ${sorted.filter((s) => s.result.fired).length} fired\n`,
   );
 }
 
-function printSuggestionsTable(rows: Array<{
-  id: number;
-  marketQuestion: string;
-  outcome: string;
-  confidence: number;
-  distinctHolders: number;
-  blendedEntry: number;
-  priceAtSignal: number;
-  status: string;
-  notifyCount: number;
-  lastNotifiedConfidence: number | null;
-  rationale: string;
-}>): void {
+function printSuggestionsTable(
+  rows: Array<{
+    id: number;
+    marketQuestion: string;
+    outcome: string;
+    confidence: number;
+    distinctHolders: number;
+    blendedEntry: number;
+    priceAtSignal: number;
+    status: string;
+    notifyCount: number;
+    lastNotifiedConfidence: number | null;
+    rationale: string;
+  }>,
+): void {
   if (rows.length === 0) {
     process.stdout.write("\n(no open BUY suggestions in DB)\n\n");
     return;
   }
-  const header = ["id", "status", "question", "outcome", "n", "conf", "lastNot", "notifyN"];
+  const header = [
+    "id",
+    "status",
+    "question",
+    "outcome",
+    "n",
+    "conf",
+    "lastNot",
+    "notifyN",
+  ];
   const data = rows.map((r) => [
     String(r.id),
     r.status,
@@ -289,17 +344,25 @@ function printSuggestionsTable(rows: Array<{
     r.outcome.slice(0, 7),
     String(r.distinctHolders),
     String(r.confidence),
-    r.lastNotifiedConfidence != null ? String(Math.round(r.lastNotifiedConfidence)) : "–",
+    r.lastNotifiedConfidence != null
+      ? String(Math.round(r.lastNotifiedConfidence))
+      : "–",
     String(r.notifyCount),
   ]);
-  const widths = header.map((h, i) => Math.max(h.length, ...data.map((row) => row[i]!.length)));
-  const fmtRow = (r: string[]) => r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
+  const widths = header.map((h, i) =>
+    Math.max(h.length, ...data.map((row) => row[i]!.length)),
+  );
+  const fmtRow = (r: string[]) =>
+    r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
 
   process.stdout.write(
     "\n─── OPEN BUY SUGGESTIONS (DB) ─────────────────────────────────────\n" +
-      fmtRow(header) + "\n" +
-      fmtRow(widths.map((w) => "─".repeat(w))) + "\n" +
-      data.map(fmtRow).join("\n") + "\n\n" +
+      fmtRow(header) +
+      "\n" +
+      fmtRow(widths.map((w) => "─".repeat(w))) +
+      "\n" +
+      data.map(fmtRow).join("\n") +
+      "\n\n" +
       `Sample rationale: ${rows[0]!.rationale}\n\n`,
   );
 }
@@ -349,7 +412,8 @@ async function loadExitWatch(
     const cur = currentByToken.get(b.tokenId) ?? new Set<string>();
     const stillIn = originalIds.filter((id) => cur.has(id)).length;
     const goneCount = originalIds.length - stillIn;
-    const fracGone = originalIds.length === 0 ? 0 : goneCount / originalIds.length;
+    const fracGone =
+      originalIds.length === 0 ? 0 : goneCount / originalIds.length;
     return {
       buyId: b.id,
       question: b.marketQuestion,
@@ -368,7 +432,16 @@ function printExitWatchTable(rows: ExitWatchRow[]): void {
     process.stdout.write("\n(no open BUYs to watch for exits)\n\n");
     return;
   }
-  const header = ["buyId", "question", "outcome", "orig", "stillIn", "gone", "fracGone", "fires"];
+  const header = [
+    "buyId",
+    "question",
+    "outcome",
+    "orig",
+    "stillIn",
+    "gone",
+    "fracGone",
+    "fires",
+  ];
   const data = rows.map((r) => [
     String(r.buyId),
     truncate(r.question, 36),
@@ -379,14 +452,20 @@ function printExitWatchTable(rows: ExitWatchRow[]): void {
     `${Math.round(r.fracGone * 100)}%`,
     r.wouldFire ? "✓" : "·",
   ]);
-  const widths = header.map((h, i) => Math.max(h.length, ...data.map((row) => row[i]!.length)));
-  const fmtRow = (r: string[]) => r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
+  const widths = header.map((h, i) =>
+    Math.max(h.length, ...data.map((row) => row[i]!.length)),
+  );
+  const fmtRow = (r: string[]) =>
+    r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
 
   process.stdout.write(
     "\n─── EXIT WATCH — open BUYs vs current holder set ─────────────────\n" +
-      fmtRow(header) + "\n" +
-      fmtRow(widths.map((w) => "─".repeat(w))) + "\n" +
-      data.map(fmtRow).join("\n") + "\n" +
+      fmtRow(header) +
+      "\n" +
+      fmtRow(widths.map((w) => "─".repeat(w))) +
+      "\n" +
+      data.map(fmtRow).join("\n") +
+      "\n" +
       `\nTotals: ${rows.length} watched, ${rows.filter((r) => r.wouldFire).length} would fire at exitFraction\n`,
   );
 }
@@ -398,23 +477,35 @@ async function loadOpenExits(prisma: ReturnType<typeof getPrisma>) {
   });
 }
 
-function printOpenExitsTable(rows: Array<{
-  id: number;
-  status: string;
-  marketQuestion: string;
-  outcome: string;
-  distinctHolders: number;
-  confidence: number;
-  notifyCount: number;
-  lastNotifiedConfidence: number | null;
-  relatedSuggestionId: number | null;
-  rationale: string;
-}>): void {
+function printOpenExitsTable(
+  rows: Array<{
+    id: number;
+    status: string;
+    marketQuestion: string;
+    outcome: string;
+    distinctHolders: number;
+    confidence: number;
+    notifyCount: number;
+    lastNotifiedConfidence: number | null;
+    relatedSuggestionId: number | null;
+    rationale: string;
+  }>,
+): void {
   if (rows.length === 0) {
     process.stdout.write("\n(no open EXIT suggestions in DB)\n\n");
     return;
   }
-  const header = ["id", "buyId", "status", "question", "outcome", "stillIn", "conf%", "lastNot", "notifyN"];
+  const header = [
+    "id",
+    "buyId",
+    "status",
+    "question",
+    "outcome",
+    "stillIn",
+    "conf%",
+    "lastNot",
+    "notifyN",
+  ];
   const data = rows.map((r) => [
     String(r.id),
     r.relatedSuggestionId != null ? String(r.relatedSuggestionId) : "–",
@@ -423,17 +514,25 @@ function printOpenExitsTable(rows: Array<{
     r.outcome.slice(0, 7),
     String(r.distinctHolders),
     String(r.confidence),
-    r.lastNotifiedConfidence != null ? String(Math.round(r.lastNotifiedConfidence)) : "–",
+    r.lastNotifiedConfidence != null
+      ? String(Math.round(r.lastNotifiedConfidence))
+      : "–",
     String(r.notifyCount),
   ]);
-  const widths = header.map((h, i) => Math.max(h.length, ...data.map((row) => row[i]!.length)));
-  const fmtRow = (r: string[]) => r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
+  const widths = header.map((h, i) =>
+    Math.max(h.length, ...data.map((row) => row[i]!.length)),
+  );
+  const fmtRow = (r: string[]) =>
+    r.map((c, i) => c.padEnd(widths[i]!)).join("  ");
 
   process.stdout.write(
     "\n─── OPEN EXIT SUGGESTIONS (DB) ────────────────────────────────────\n" +
-      fmtRow(header) + "\n" +
-      fmtRow(widths.map((w) => "─".repeat(w))) + "\n" +
-      data.map(fmtRow).join("\n") + "\n\n" +
+      fmtRow(header) +
+      "\n" +
+      fmtRow(widths.map((w) => "─".repeat(w))) +
+      "\n" +
+      data.map(fmtRow).join("\n") +
+      "\n\n" +
       `Sample rationale: ${rows[0]!.rationale}\n\n`,
   );
 }
@@ -470,13 +569,18 @@ async function simulateExitByDeletingHolders(
 function parseIds(json: string): string[] {
   try {
     const v = JSON.parse(json);
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    return Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+      : [];
   } catch {
     return [];
   }
 }
 
 main().catch((err) => {
-  log.error({ err: (err as Error).message, stack: (err as Error).stack }, "fatal");
+  log.error(
+    { err: (err as Error).message, stack: (err as Error).stack },
+    "fatal",
+  );
   process.exit(1);
 });

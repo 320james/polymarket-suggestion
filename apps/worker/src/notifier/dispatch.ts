@@ -58,7 +58,12 @@ export async function dispatchBuyNotifications(
   deps: DispatcherDeps,
   rows: WriteSuggestionsRow[],
 ): Promise<DispatchSummary> {
-  const summary: DispatchSummary = { attempted: 0, succeeded: 0, failed: 0, retryableFailures: 0 };
+  const summary: DispatchSummary = {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    retryableFailures: 0,
+  };
   for (const r of rows) {
     summary.attempted++;
     const out = await sendOne(deps, {
@@ -78,7 +83,12 @@ export async function dispatchExitNotifications(
   deps: DispatcherDeps,
   rows: WriteExitsRow[],
 ): Promise<DispatchSummary> {
-  const summary: DispatchSummary = { attempted: 0, succeeded: 0, failed: 0, retryableFailures: 0 };
+  const summary: DispatchSummary = {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    retryableFailures: 0,
+  };
   for (const r of rows) {
     summary.attempted++;
     const out = await sendOne(deps, {
@@ -110,7 +120,10 @@ async function sendOne(
     where: { id: args.suggestionId },
   });
   if (!suggestion) {
-    log.warn({ suggestionId: args.suggestionId }, "suggestion vanished before notify");
+    log.warn(
+      { suggestionId: args.suggestionId },
+      "suggestion vanished before notify",
+    );
     return { ok: false, retryable: false };
   }
 
@@ -124,16 +137,21 @@ async function sendOne(
     reason: args.reason,
   };
 
-  const attempt = (await prisma.notificationLog.count({
-    where: { suggestionId: suggestion.id },
-  })) + 1;
+  const attempt =
+    (await prisma.notificationLog.count({
+      where: { suggestionId: suggestion.id },
+    })) + 1;
 
   let result;
   try {
     result = await channel.send(payload);
   } catch (err) {
     // A channel that throws is a bug, but DON'T crash the worker.
-    result = { ok: false, error: `channel threw: ${(err as Error).message}`, retryable: true };
+    result = {
+      ok: false,
+      error: `channel threw: ${(err as Error).message}`,
+      retryable: true,
+    };
   }
 
   // Log the attempt regardless of outcome.
@@ -195,7 +213,10 @@ async function loadSupportingTraders(
 }
 
 /** Build the Polymarket UI URL for a market, preferring slug when known. */
-async function loadMarketUrl(prisma: PrismaClient, conditionId: string): Promise<string> {
+async function loadMarketUrl(
+  prisma: PrismaClient,
+  conditionId: string,
+): Promise<string> {
   const m = await prisma.market.findUnique({ where: { conditionId } });
   if (m?.slug) return `https://polymarket.com/event/${m.slug}`;
   // Fallback: conditionId-based URL still resolves on polymarket.com.
@@ -216,14 +237,19 @@ async function safelyWriteLog(
     await prisma.notificationLog.create({ data });
   } catch (err) {
     // Per spec: never crash the worker on a notification-log write failure.
-    log.error({ err: (err as Error).message }, "failed to write NotificationLog row");
+    log.error(
+      { err: (err as Error).message },
+      "failed to write NotificationLog row",
+    );
   }
 }
 
 function parseIds(json: string): string[] {
   try {
     const v = JSON.parse(json);
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    return Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+      : [];
   } catch {
     return [];
   }

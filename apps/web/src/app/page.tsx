@@ -17,7 +17,11 @@ export default async function HomePage() {
     prisma.workerRun.findFirst({ orderBy: { id: "desc" } }),
     prisma.suggestion.findMany({
       where: { status: { in: ["NEW", "NOTIFIED"] } },
-      orderBy: [{ status: "asc" }, { confidence: "desc" }, { createdAt: "desc" }],
+      orderBy: [
+        { status: "asc" },
+        { confidence: "desc" },
+        { createdAt: "desc" },
+      ],
       take: 50,
     }),
     prisma.config.findUnique({ where: { id: 1 } }),
@@ -25,12 +29,17 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <StatusTile lastRun={lastRun} killSwitch={config?.killSwitch ?? false} pollSec={config?.pollIntervalSec ?? 120} />
+      <StatusTile
+        lastRun={lastRun}
+        killSwitch={config?.killSwitch ?? false}
+        pollSec={config?.pollIntervalSec ?? 120}
+      />
       <section>
         <header className="mb-3 flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">Open suggestions</h2>
           <p className="text-sm text-zinc-500">
-            {openSuggestions.length} active {openSuggestions.length === 1 ? "row" : "rows"}
+            {openSuggestions.length} active{" "}
+            {openSuggestions.length === 1 ? "row" : "rows"}
           </p>
         </header>
         {openSuggestions.length === 0 ? (
@@ -77,20 +86,36 @@ function StatusTile({
       </div>
       {lastRun ? (
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4 lg:grid-cols-7">
-          <StatusStat label="Last poll" value={fmtRelative(startedAt)} title={startedAt?.toISOString()} />
+          <StatusStat
+            label="Last poll"
+            value={fmtRelative(startedAt)}
+            title={startedAt?.toISOString()}
+          />
           <StatusStat
             label="Status"
             value={ok ? "ok" : `errors (${lastRun.errorCount})`}
             valueClass={ok ? "text-emerald-700" : "text-red-700"}
           />
-          <StatusStat label="Duration" value={durMs != null ? `${(durMs / 1000).toFixed(1)}s` : "–"} />
-          <StatusStat label="Vetted" value={`${lastRun.vetted}/${lastRun.candidates}`} />
-          <StatusStat label="Positions" value={lastRun.positionsSeen.toLocaleString()} />
+          <StatusStat
+            label="Duration"
+            value={durMs != null ? `${(durMs / 1000).toFixed(1)}s` : "–"}
+          />
+          <StatusStat
+            label="Vetted"
+            value={`${lastRun.vetted}/${lastRun.candidates}`}
+          />
+          <StatusStat
+            label="Positions"
+            value={lastRun.positionsSeen.toLocaleString()}
+          />
           <StatusStat label="Firings" value={String(lastRun.firings)} />
           <StatusStat label="Sent" value={String(lastRun.notifications)} />
         </dl>
       ) : (
-        <p className="mt-2 text-sm text-zinc-500">No polls recorded yet — start the worker with <code className="font-mono">pnpm dev:worker</code>.</p>
+        <p className="mt-2 text-sm text-zinc-500">
+          No polls recorded yet — start the worker with{" "}
+          <code className="font-mono">pnpm dev:worker</code>.
+        </p>
       )}
     </section>
   );
@@ -153,14 +178,21 @@ function SuggestionsTable({
         </thead>
         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {rows.map((r) => (
-            <tr key={r.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+            <tr
+              key={r.id}
+              className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            >
               <td className="px-3 py-2">
-                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(r.type)}`}>
+                <span
+                  className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${typeBadgeClass(r.type)}`}
+                >
                   {r.type}
                 </span>
               </td>
               <td className="px-3 py-2">
-                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(r.status)}`}>
+                <span
+                  className={`inline-block rounded border px-1.5 py-0.5 text-xs font-semibold uppercase ${statusBadgeClass(r.status)}`}
+                >
                   {r.status}
                 </span>
               </td>
@@ -173,12 +205,22 @@ function SuggestionsTable({
                   {r.marketQuestion}
                 </Link>
               </td>
-              <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{r.outcome}</td>
+              <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
+                {r.outcome}
+              </td>
               <td className="px-3 py-2 text-right font-mono">{r.confidence}</td>
-              <td className="px-3 py-2 text-right font-mono">{r.distinctHolders}</td>
-              <td className="px-3 py-2 text-right font-mono">{fmtCents(r.blendedEntry)}</td>
-              <td className="px-3 py-2 text-right font-mono">{fmtCents(r.priceAtSignal)}</td>
-              <td className="px-3 py-2 text-right font-mono">{fmtSignedCents(r.slippageCents)}</td>
+              <td className="px-3 py-2 text-right font-mono">
+                {r.distinctHolders}
+              </td>
+              <td className="px-3 py-2 text-right font-mono">
+                {fmtCents(r.blendedEntry)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono">
+                {fmtCents(r.priceAtSignal)}
+              </td>
+              <td className="px-3 py-2 text-right font-mono">
+                {fmtSignedCents(r.slippageCents)}
+              </td>
               <td className="px-3 py-2">
                 {r.alreadyRan && (
                   <span className="mr-1 inline-block rounded border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-xs font-semibold uppercase text-amber-900">
@@ -191,7 +233,10 @@ function SuggestionsTable({
                   </span>
                 )}
               </td>
-              <td className="px-3 py-2 text-zinc-500" title={r.updatedAt.toISOString()}>
+              <td
+                className="px-3 py-2 text-zinc-500"
+                title={r.updatedAt.toISOString()}
+              >
                 {fmtRelative(r.updatedAt)}
               </td>
             </tr>

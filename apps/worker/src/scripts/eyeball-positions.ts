@@ -39,7 +39,9 @@ const CATEGORY = (process.env.CATEGORY ?? "OVERALL") as LeaderboardCategory;
 const WINDOWS = (process.env.WINDOWS ?? "WEEK,MONTH,ALL")
   .split(",")
   .map((s) => s.trim().toUpperCase()) as LeaderboardWindow[];
-const USER_OVERRIDE = process.env.USER?.startsWith("0x") ? process.env.USER : null;
+const USER_OVERRIDE = process.env.USER?.startsWith("0x")
+  ? process.env.USER
+  : null;
 
 async function main(): Promise<void> {
   const limiter = new RateLimiter(DEFAULT_BUCKETS);
@@ -47,7 +49,10 @@ async function main(): Promise<void> {
   const gamma = new GammaApiClient({ limiter });
   const prisma = getPrisma();
 
-  log.info({ pool: POOL, category: CATEGORY, windows: WINDOWS }, "fetching candidates");
+  log.info(
+    { pool: POOL, category: CATEGORY, windows: WINDOWS },
+    "fetching candidates",
+  );
   const candidates = await selectCandidates(api, {
     windows: WINDOWS,
     category: CATEGORY,
@@ -80,7 +85,11 @@ async function main(): Promise<void> {
   }
 
   log.info(
-    { user: pick.username, addr: pick.proxyWallet, windowsAppeared: pick.windowsAppeared },
+    {
+      user: pick.username,
+      addr: pick.proxyWallet,
+      windowsAppeared: pick.windowsAppeared,
+    },
     "vetting",
   );
   const tVet = Date.now();
@@ -92,7 +101,8 @@ async function main(): Promise<void> {
     {
       ms: Date.now() - tVet,
       passed: outcome.passed,
-      trustWeight: outcome.trustWeight != null ? +outcome.trustWeight.toFixed(3) : null,
+      trustWeight:
+        outcome.trustWeight != null ? +outcome.trustWeight.toFixed(3) : null,
       resolved: outcome.resolvedTrades,
     },
     "vetted",
@@ -149,7 +159,15 @@ interface Row {
 }
 
 function printTable(rows: Row[], qByCond: Map<string, string>): void {
-  const header = ["question", "outcome", "size", "avg%", "pct%", "enteredAt", "ageH"];
+  const header = [
+    "question",
+    "outcome",
+    "size",
+    "avg%",
+    "pct%",
+    "enteredAt",
+    "ageH",
+  ];
   const now = Date.now();
   const data = rows.map((r) => {
     const q = qByCond.get(r.conditionId) ?? r.conditionId.slice(0, 10);
@@ -218,6 +236,9 @@ function truncate(s: string, n: number): string {
 }
 
 main().catch((err) => {
-  log.error({ err: (err as Error).message, stack: (err as Error).stack }, "fatal");
+  log.error(
+    { err: (err as Error).message, stack: (err as Error).stack },
+    "fatal",
+  );
   process.exit(1);
 });

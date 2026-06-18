@@ -57,7 +57,9 @@ export async function syncTraderPositions(
   });
 
   // 2. What we already track for this trader.
-  const existing = await prisma.traderPosition.findMany({ where: { traderId } });
+  const existing = await prisma.traderPosition.findMany({
+    where: { traderId },
+  });
   const existingByToken = new Map(existing.map((p) => [p.tokenId, p]));
 
   // 3. Identify NEW positions (tokens we haven't seen) and the conditionIds
@@ -109,9 +111,10 @@ export async function syncTraderPositions(
       fallback++;
     }
 
-    const pct = totalInitial > 0 && Number.isFinite(p.initialValue)
-      ? p.initialValue / totalInitial
-      : null;
+    const pct =
+      totalInitial > 0 && Number.isFinite(p.initialValue)
+        ? p.initialValue / totalInitial
+        : null;
 
     await prisma.traderPosition.upsert({
       where: { traderId_tokenId: { traderId, tokenId: p.asset } },

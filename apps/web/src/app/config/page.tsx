@@ -24,47 +24,217 @@ export default async function ConfigPage() {
 
       <KillSwitch on={cfg.killSwitch} />
 
-      <Section title="Operations" subtitle="Cadence, candidate pool, notification channel.">
-        <Field name="pollIntervalSec" label="Poll interval (sec)" defaultValue={cfg.pollIntervalSec} step={5} min={10} />
-        <Field name="candidatePoolSize" label="Candidate pool size" defaultValue={cfg.candidatePoolSize} step={1} min={1} />
-        <SelectField name="leaderboardWindows" label="Leaderboard windows" defaultValue={cfg.leaderboardWindows}
-          options={["WEEK,MONTH,ALL", "WEEK", "MONTH", "ALL", "WEEK,MONTH", "MONTH,ALL"]} />
-        <SelectField name="category" label="Category" defaultValue={cfg.category} options={CATEGORIES} />
-        <SelectField name="notifyChannel" label="Notify channel" defaultValue={cfg.notifyChannel} options={CHANNELS} />
-        <Field name="alertConfidenceStep" label="Re-alert step (Δ confidence)" defaultValue={cfg.alertConfidenceStep} step={1} />
-        <Field name="exitFraction" label="Exit fraction (0..1)" defaultValue={cfg.exitFraction} step={0.05} min={0} max={1} />
+      <Section
+        title="Operations"
+        subtitle="Cadence, candidate pool, notification channel."
+      >
+        <Field
+          name="pollIntervalSec"
+          label="Poll interval (sec)"
+          defaultValue={cfg.pollIntervalSec}
+          step={5}
+          min={10}
+        />
+        <Field
+          name="candidatePoolSize"
+          label="Candidate pool size"
+          defaultValue={cfg.candidatePoolSize}
+          step={1}
+          min={1}
+        />
+        <SelectField
+          name="leaderboardWindows"
+          label="Leaderboard windows"
+          defaultValue={cfg.leaderboardWindows}
+          options={[
+            "WEEK,MONTH,ALL",
+            "WEEK",
+            "MONTH",
+            "ALL",
+            "WEEK,MONTH",
+            "MONTH,ALL",
+          ]}
+        />
+        <SelectField
+          name="category"
+          label="Category"
+          defaultValue={cfg.category}
+          options={CATEGORIES}
+        />
+        <SelectField
+          name="notifyChannel"
+          label="Notify channel"
+          defaultValue={cfg.notifyChannel}
+          options={CHANNELS}
+        />
+        <Field
+          name="alertConfidenceStep"
+          label="Re-alert step (Δ confidence)"
+          defaultValue={cfg.alertConfidenceStep}
+          step={1}
+        />
+        <Field
+          name="exitFraction"
+          label="Exit fraction (0..1)"
+          defaultValue={cfg.exitFraction}
+          step={0.05}
+          min={0}
+          max={1}
+        />
       </Section>
 
-      <Section title="Vetting gates" subtitle="A trader must clear ALL of these to enter the pool.">
-        <Field name="minResolvedTrades" label="Min resolved trades" defaultValue={cfg.minResolvedTrades} step={1} min={0} />
-        <Field name="winRateFloor" label="Win rate floor (0..1)" defaultValue={cfg.winRateFloor} step={0.01} min={0} max={1} />
-        <Field name="minProfitFactor" label="Min profit factor" defaultValue={cfg.minProfitFactor} step={0.1} min={0} />
-        <Field name="minWindowsAppeared" label="Min windows appeared (1..3)" defaultValue={cfg.minWindowsAppeared} step={1} min={1} max={3} />
+      <Section
+        title="Vetting gates"
+        subtitle="A trader must clear ALL of these to enter the pool."
+      >
+        <Field
+          name="minResolvedTrades"
+          label="Min resolved trades"
+          defaultValue={cfg.minResolvedTrades}
+          step={1}
+          min={0}
+        />
+        <Field
+          name="winRateFloor"
+          label="Win rate floor (0..1)"
+          defaultValue={cfg.winRateFloor}
+          step={0.01}
+          min={0}
+          max={1}
+        />
+        <Field
+          name="minProfitFactor"
+          label="Min profit factor"
+          defaultValue={cfg.minProfitFactor}
+          step={0.1}
+          min={0}
+        />
+        <Field
+          name="minWindowsAppeared"
+          label="Min windows appeared (1..3)"
+          defaultValue={cfg.minWindowsAppeared}
+          step={1}
+          min={1}
+          max={3}
+        />
       </Section>
 
-      <Section title="Trust weight shaping" subtitle="Maps stats into the per-trader weight used in consensus scoring.">
-        <Field name="pfTarget" label="Profit factor target" defaultValue={cfg.pfTarget} step={0.1} min={0} />
-        <Field name="confidenceK" label="Confidence K (smoothing)" defaultValue={cfg.confidenceK} step={1} min={0} />
-        <Field name="favoriteOddsThreshold" label="Favorite odds threshold" defaultValue={cfg.favoriteOddsThreshold} step={0.05} min={0} max={1} />
+      <Section
+        title="Trust weight shaping"
+        subtitle="Maps stats into the per-trader weight used in consensus scoring."
+      >
+        <Field
+          name="pfTarget"
+          label="Profit factor target"
+          defaultValue={cfg.pfTarget}
+          step={0.1}
+          min={0}
+        />
+        <Field
+          name="confidenceK"
+          label="Confidence K (smoothing)"
+          defaultValue={cfg.confidenceK}
+          step={1}
+          min={0}
+        />
+        <Field
+          name="favoriteOddsThreshold"
+          label="Favorite odds threshold"
+          defaultValue={cfg.favoriteOddsThreshold}
+          step={0.05}
+          min={0}
+          max={1}
+        />
       </Section>
 
-      <Section title="Consensus" subtitle="Gates a candidate signal must clear to become a Suggestion.">
-        <Field name="minDistinctHolders" label="Min distinct holders" defaultValue={cfg.minDistinctHolders} step={1} min={1} />
-        <Field name="consensusScoreMin" label="Min raw score" defaultValue={cfg.consensusScoreMin} step={0.1} min={0} />
-        <Field name="recencyHalfLifeHours" label="Recency half-life (hours)" defaultValue={cfg.recencyHalfLifeHours} step={1} min={0} />
-        <Field name="maxSlippageCents" label="Max slippage (¢)" defaultValue={cfg.maxSlippageCents} step={0.5} min={0} />
+      <Section
+        title="Consensus"
+        subtitle="Gates a candidate signal must clear to become a Suggestion."
+      >
+        <Field
+          name="minDistinctHolders"
+          label="Min distinct holders"
+          defaultValue={cfg.minDistinctHolders}
+          step={1}
+          min={1}
+        />
+        <Field
+          name="consensusScoreMin"
+          label="Min raw score"
+          defaultValue={cfg.consensusScoreMin}
+          step={0.1}
+          min={0}
+        />
+        <Field
+          name="recencyHalfLifeHours"
+          label="Recency half-life (hours)"
+          defaultValue={cfg.recencyHalfLifeHours}
+          step={1}
+          min={0}
+        />
+        <Field
+          name="maxSlippageCents"
+          label="Max slippage (¢)"
+          defaultValue={cfg.maxSlippageCents}
+          step={0.5}
+          min={0}
+        />
       </Section>
 
-      <Section title="Herding guard" subtitle="Penalizes clustered, similarly-sized entries from copy-traders.">
-        <Field name="herdingWindowMinutes" label="Window (minutes)" defaultValue={cfg.herdingWindowMinutes} step={5} min={0} />
-        <Field name="herdingClusterFrac" label="Cluster fraction (0..1)" defaultValue={cfg.herdingClusterFrac} step={0.05} min={0} max={1} />
-        <Field name="herdingSizeCv" label="Size CV threshold" defaultValue={cfg.herdingSizeCv} step={0.05} min={0} />
-        <Field name="herdingPenalty" label="Penalty multiplier" defaultValue={cfg.herdingPenalty} step={0.05} min={0} max={1} />
+      <Section
+        title="Herding guard"
+        subtitle="Penalizes clustered, similarly-sized entries from copy-traders."
+      >
+        <Field
+          name="herdingWindowMinutes"
+          label="Window (minutes)"
+          defaultValue={cfg.herdingWindowMinutes}
+          step={5}
+          min={0}
+        />
+        <Field
+          name="herdingClusterFrac"
+          label="Cluster fraction (0..1)"
+          defaultValue={cfg.herdingClusterFrac}
+          step={0.05}
+          min={0}
+          max={1}
+        />
+        <Field
+          name="herdingSizeCv"
+          label="Size CV threshold"
+          defaultValue={cfg.herdingSizeCv}
+          step={0.05}
+          min={0}
+        />
+        <Field
+          name="herdingPenalty"
+          label="Penalty multiplier"
+          defaultValue={cfg.herdingPenalty}
+          step={0.05}
+          min={0}
+          max={1}
+        />
       </Section>
 
-      <Section title="Confidence display" subtitle="How raw score + holder count map to the 0..100 confidence shown in alerts.">
-        <Field name="scoreTarget" label="Score target" defaultValue={cfg.scoreTarget} step={0.5} min={0} />
-        <Field name="holderTarget" label="Holder target" defaultValue={cfg.holderTarget} step={1} min={1} />
+      <Section
+        title="Confidence display"
+        subtitle="How raw score + holder count map to the 0..100 confidence shown in alerts."
+      >
+        <Field
+          name="scoreTarget"
+          label="Score target"
+          defaultValue={cfg.scoreTarget}
+          step={0.5}
+          min={0}
+        />
+        <Field
+          name="holderTarget"
+          label="Holder target"
+          defaultValue={cfg.holderTarget}
+          step={1}
+          min={1}
+        />
       </Section>
 
       <div className="sticky bottom-4 flex items-center justify-end gap-3 rounded-lg border border-zinc-200 bg-white/80 p-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
@@ -124,7 +294,9 @@ function Section({
         <h2 className="text-base font-semibold">{title}</h2>
         {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
       </header>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {children}
+      </div>
     </section>
   );
 }
@@ -146,7 +318,9 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <input
         type="number"
         name={name}
@@ -173,7 +347,9 @@ function SelectField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className="text-xs uppercase tracking-wide text-zinc-500">
+        {label}
+      </span>
       <select
         name={name}
         defaultValue={defaultValue}

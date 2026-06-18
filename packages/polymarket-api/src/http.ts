@@ -14,7 +14,10 @@ export interface RequestOptions {
    * Query params. For repeated params (e.g. `?condition_ids=a&condition_ids=b`),
    * pass an array as the value.
    */
-  query?: Record<string, string | number | boolean | string[] | number[] | undefined | null>;
+  query?: Record<
+    string,
+    string | number | boolean | string[] | number[] | undefined | null
+  >;
   signal?: AbortSignal;
 }
 
@@ -72,7 +75,9 @@ export class HttpClient {
             accept: "application/json",
             "user-agent":
               this.opts.userAgent ?? "polymarket-suggest/0.1 (+local)",
-            ...(body !== undefined ? { "content-type": "application/json" } : {}),
+            ...(body !== undefined
+              ? { "content-type": "application/json" }
+              : {}),
           },
           body: body !== undefined ? JSON.stringify(body) : undefined,
           signal: req.signal,

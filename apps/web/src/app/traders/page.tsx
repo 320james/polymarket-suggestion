@@ -54,26 +54,50 @@ export default async function TradersPage() {
                   )}
                 </td>
                 <td className="px-3 py-2">{t.username || "—"}</td>
-                <td className="px-3 py-2 font-mono text-xs text-zinc-500" title={t.id}>
+                <td
+                  className="px-3 py-2 font-mono text-xs text-zinc-500"
+                  title={t.id}
+                >
                   {fmtAddress(t.id)}
                 </td>
                 <td className="px-3 py-2 text-right font-mono">{t.bestRank}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtPct(t.winRate)}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtNum(t.profitFactor)}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtPct(t.avgRoi)}</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtPct(t.avgEntryOdds)}</td>
-                <td className="px-3 py-2 text-right font-mono">{t.resolvedTrades}</td>
-                <td className="px-3 py-2 text-right font-mono">{t.windowsAppeared}/3</td>
-                <td className="px-3 py-2 text-right font-mono">{fmtNum(t.trustWeight)}</td>
-                <td className="px-3 py-2 text-zinc-500" title={t.lastStatsComputedAt?.toISOString()}>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtPct(t.winRate)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtNum(t.profitFactor)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtPct(t.avgRoi)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtPct(t.avgEntryOdds)}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {t.resolvedTrades}
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {t.windowsAppeared}/3
+                </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {fmtNum(t.trustWeight)}
+                </td>
+                <td
+                  className="px-3 py-2 text-zinc-500"
+                  title={t.lastStatsComputedAt?.toISOString()}
+                >
                   {fmtRelative(t.lastStatsComputedAt)}
                 </td>
               </tr>
             ))}
             {traders.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-6 text-center text-sm text-zinc-500">
-                  No traders tracked yet — run <code className="font-mono">pnpm poll</code> to populate.
+                <td
+                  colSpan={12}
+                  className="px-3 py-6 text-center text-sm text-zinc-500"
+                >
+                  No traders tracked yet — run{" "}
+                  <code className="font-mono">pnpm poll</code> to populate.
                 </td>
               </tr>
             )}

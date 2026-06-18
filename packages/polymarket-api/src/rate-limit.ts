@@ -76,18 +76,18 @@ export class RateLimiter {
 }
 
 export const DEFAULT_BUCKETS: Record<string, BucketSpec> = {
-  "data:positions":   { perWindow: 150,  windowSec: 10 },
-  "data:trades":      { perWindow: 200,  windowSec: 10 },
-  "data:activity":    { perWindow: 1000, windowSec: 10 },
+  "data:positions": { perWindow: 150, windowSec: 10 },
+  "data:trades": { perWindow: 200, windowSec: 10 },
+  "data:activity": { perWindow: 1000, windowSec: 10 },
   "data:leaderboard": { perWindow: 1000, windowSec: 10 },
-  "clob:price":       { perWindow: 1500, windowSec: 10 },
-  "clob:midpoint":    { perWindow: 1500, windowSec: 10 },
+  "clob:price": { perWindow: 1500, windowSec: 10 },
+  "clob:midpoint": { perWindow: 1500, windowSec: 10 },
   // Batch CLOB endpoints share the same family limit; bucket separately so
   // singles vs batches don't starve each other.
-  "clob:prices":      { perWindow: 1500, windowSec: 10 },
-  "clob:midpoints":   { perWindow: 1500, windowSec: 10 },
+  "clob:prices": { perWindow: 1500, windowSec: 10 },
+  "clob:midpoints": { perWindow: 1500, windowSec: 10 },
   // Gamma has no published rate limit; conservative ~10 rps sustained.
-  "gamma:markets":    { perWindow: 100,  windowSec: 10 },
+  "gamma:markets": { perWindow: 100, windowSec: 10 },
 };
 
 function sleep(ms: number): Promise<void> {

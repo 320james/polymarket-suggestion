@@ -106,7 +106,12 @@ export class DataApiClient {
     let offset = 0;
     while (out.length < maxTotal) {
       const want = Math.min(pageSize, maxTotal - out.length);
-      const page = await this.getTrades({ user, limit: want, offset, takerOnly });
+      const page = await this.getTrades({
+        user,
+        limit: want,
+        offset,
+        takerOnly,
+      });
       out.push(...page);
       if (page.length < want) break;
       offset += page.length;

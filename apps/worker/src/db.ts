@@ -6,9 +6,10 @@ let prisma: PrismaClient | null = null;
 export function getPrisma(): PrismaClient {
   if (!prisma) {
     prisma = new PrismaClient({
-      log: process.env.PRISMA_LOG === "1"
-        ? ["query", "info", "warn", "error"]
-        : ["warn", "error"],
+      log:
+        process.env.PRISMA_LOG === "1"
+          ? ["query", "info", "warn", "error"]
+          : ["warn", "error"],
     });
   }
   return prisma;

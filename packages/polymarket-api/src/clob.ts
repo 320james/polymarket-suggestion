@@ -59,7 +59,10 @@ export class ClobApiClient {
   }
 
   /** Best bid (`BUY`) or ask (`SELL`) price as a number, or null. */
-  async getPrice(tokenId: string, side: "BUY" | "SELL"): Promise<number | null> {
+  async getPrice(
+    tokenId: string,
+    side: "BUY" | "SELL",
+  ): Promise<number | null> {
     try {
       const r = await this.http.getJson<ClobPriceResponse>("/price", {
         rateKey: "clob:price",
