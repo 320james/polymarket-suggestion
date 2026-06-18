@@ -112,6 +112,7 @@ async function main(): Promise<void> {
     candidate: pick,
     outcome,
     seenOnLeaderboard: !USER_OVERRIDE,
+    freshlyComputed: true,
   });
 
   const tSync = Date.now();

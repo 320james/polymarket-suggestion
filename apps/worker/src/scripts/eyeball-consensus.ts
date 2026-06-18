@@ -105,6 +105,7 @@ async function main(): Promise<void> {
           candidate: c,
           outcome,
           seenOnLeaderboard: true,
+          freshlyComputed: true,
         });
         log.info(
           {

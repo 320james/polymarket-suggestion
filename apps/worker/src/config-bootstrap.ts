@@ -29,6 +29,8 @@ export interface RuntimeConfig {
     notifyChannel: string; // TELEGRAM|PUSHOVER|NTFY|EMAIL
     alertConfidenceStep: number;
     exitFraction: number;
+    /** TTL for cached trader stats — 0 disables caching. See run-poll Phase 2. */
+    vetCacheTtlSec: number;
   };
 }
 
@@ -79,6 +81,7 @@ function toRuntimeConfig(row: Config): RuntimeConfig {
       notifyChannel: row.notifyChannel,
       alertConfidenceStep: row.alertConfidenceStep,
       exitFraction: row.exitFraction,
+      vetCacheTtlSec: row.vetCacheTtlSec,
     },
   };
 }

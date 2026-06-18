@@ -43,6 +43,13 @@ model Config {
   // Fed to shouldSuggestExit(): fraction of original holders that must be gone.
   exitFraction          Float    @default(0.6)
 
+  // Skip re-vetting (skip API calls) for a TrackedTrader whose stats were
+  // computed within this many seconds. The cached stats are still re-scored
+  // against the current vetting gates + trust-weight formula on every poll,
+  // so config edits take effect immediately. Default 21600 = 6 hours. Set
+  // to 0 to disable caching (re-vet every poll).
+  vetCacheTtlSec        Int      @default(21600)
+
   // --- vetting gates (must clear ALL) ---
   minResolvedTrades     Int      @default(20)
   winRateFloor          Float    @default(0.55)

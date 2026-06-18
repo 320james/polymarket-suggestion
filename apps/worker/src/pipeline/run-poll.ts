@@ -16,7 +16,7 @@
  * surfaced in the return value for the dashboard.
  */
 
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, TrackedTrader } from "@prisma/client";
 import type {
   ClobApiClient,
   DataApiClient,
@@ -24,10 +24,15 @@ import type {
   LeaderboardCategory,
   LeaderboardWindow,
 } from "@poly/polymarket-api";
+import {
+  computeTrustWeight,
+  passesVetting,
+  type TraderStats,
+} from "@poly/shared";
 import type { RuntimeConfig } from "../config-bootstrap.js";
 import { log } from "../log.js";
 import { selectCandidates, type Candidate } from "./candidates.js";
-import { vetTrader } from "./vet.js";
+import { vetTrader, type VetOutcome } from "./vet.js";
 import { upsertTrackedTrader } from "./trackers.js";
 import { syncTraderPositions } from "./positions.js";
 import { buildConsensusSignals } from "./consensus.js";
@@ -111,18 +116,57 @@ export async function runPoll(deps: RunPollDeps): Promise<RunPollResult> {
   }
 
   // ─── Phase 2: vet + persist (serial, per-candidate isolated) ─────────
+  //
+  // Caching: if a TrackedTrader row exists with stats computed within the
+  // last `vetCacheTtlSec` seconds, we skip the (expensive) Polymarket API
+  // calls in vetTrader() and reconstruct a VetOutcome from the cached
+  // stats. The cached numbers are still re-scored against the *current*
+  // config (passesVetting + computeTrustWeight) so dashboard knob edits
+  // take effect immediately, even on cache hits. Set vetCacheTtlSec=0 to
+  // disable caching and re-vet every candidate every poll.
   const passed: Candidate[] = [];
+  let vetsFresh = 0;
+  let vetsCached = 0;
+  const cacheTtlMs = Math.max(0, config.ops.vetCacheTtlSec) * 1000;
+  const cacheCutoff = cacheTtlMs > 0 ? new Date(Date.now() - cacheTtlMs) : null;
+
+  // One round-trip to load every candidate's existing row up front.
+  const existingRows =
+    candidates.length > 0
+      ? await prisma.trackedTrader.findMany({
+          where: { id: { in: candidates.map((c) => c.proxyWallet) } },
+        })
+      : [];
+  const existingById = new Map<string, TrackedTrader>(
+    existingRows.map((r) => [r.id, r]),
+  );
+
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i]!;
     try {
-      const outcome = await vetTrader(api, config.scoring, {
-        proxyAddress: c.proxyWallet,
-        windowsAppeared: c.windowsAppeared,
-      });
+      const cached = cacheCutoff
+        ? buildCachedOutcome(
+            existingById.get(c.proxyWallet),
+            c,
+            config.scoring,
+            cacheCutoff,
+          )
+        : null;
+
+      const outcome: VetOutcome =
+        cached ??
+        (await vetTrader(api, config.scoring, {
+          proxyAddress: c.proxyWallet,
+          windowsAppeared: c.windowsAppeared,
+        }));
+      if (cached) vetsCached++;
+      else vetsFresh++;
+
       await upsertTrackedTrader(prisma, {
         candidate: c,
         outcome,
         seenOnLeaderboard: true,
+        freshlyComputed: !cached,
       });
       if (outcome.passed) passed.push(c);
     } catch (err) {
@@ -138,6 +182,8 @@ export async function runPoll(deps: RunPollDeps): Promise<RunPollResult> {
       workerRunId: run.id,
       candidates: candidates.length,
       passed: passed.length,
+      vetsFresh,
+      vetsCached,
     },
     "vet phase complete",
   );
@@ -341,5 +387,60 @@ function zeroResult(over: Partial<RunPollResult> = {}): RunPollResult {
     buysToNotify: [],
     exitsToNotify: [],
     ...over,
+  };
+}
+
+/**
+ * Try to reconstruct a VetOutcome from an existing TrackedTrader row.
+ * Returns null if the row is missing, the stats are too old, or any of the
+ * required numeric stats is unset (which would corrupt downstream scoring).
+ *
+ * The cached row's stats are re-evaluated against the current scoring
+ * config — only the underlying API-derived numbers (winRate, profitFactor,
+ * avgRoi, avgEntryOdds, resolvedTrades) are cache-sourced. windowsAppeared
+ * uses the *current* candidate's value since it can shift between polls
+ * as leaderboard composition changes.
+ */
+function buildCachedOutcome(
+  row: TrackedTrader | undefined,
+  candidate: Candidate,
+  scoring: Parameters<typeof passesVetting>[1],
+  cutoff: Date,
+): VetOutcome | null {
+  if (!row) return null;
+  if (!row.lastStatsComputedAt || row.lastStatsComputedAt < cutoff) return null;
+  if (
+    row.winRate == null ||
+    row.profitFactor == null ||
+    row.avgRoi == null ||
+    row.avgEntryOdds == null
+  )
+    return null;
+
+  const stats: TraderStats = {
+    proxyAddress: candidate.proxyWallet,
+    resolvedTrades: row.resolvedTrades,
+    winRate: row.winRate,
+    profitFactor: row.profitFactor,
+    avgRoi: row.avgRoi,
+    avgEntryOdds: row.avgEntryOdds,
+    windowsAppeared: candidate.windowsAppeared,
+  };
+
+  const passed = passesVetting(stats, scoring);
+  const trustWeight = passed ? computeTrustWeight(stats, scoring) : null;
+
+  return {
+    stats,
+    passed,
+    trustWeight,
+    vetted: passed && trustWeight != null ? { ...stats, trustWeight } : null,
+    // Raw-input counts aren't meaningful for a cache hit; downstream code
+    // only reads `stats` / `passed` / `trustWeight` / `vetted`.
+    rawTrades: 0,
+    rawRedeems: 0,
+    uniqueSettledMarkets: 0,
+    resolvedTrades: row.resolvedTrades,
+    closedSince: null,
   };
 }

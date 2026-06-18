@@ -15,11 +15,25 @@ export interface UpsertTrackedTraderInput {
   outcome: VetOutcome;
   /** True if the trader appeared on the leaderboard fan-out this poll. */
   seenOnLeaderboard: boolean;
+  /**
+   * True when `outcome` came from a fresh vetTrader() API run; false when
+   * it was reconstructed from a cached TrackedTrader row (see vet-cache
+   * path in run-poll Phase 2). When false we still refresh leaderboard
+   * fields + the config-derived trustWeight/vetted flags, but we leave
+   * `lastStatsComputedAt` alone so the TTL keeps counting from the real
+   * compute time — otherwise the cache would never expire.
+   */
+  freshlyComputed: boolean;
 }
 
 export async function upsertTrackedTrader(
   prisma: PrismaClient,
-  { candidate, outcome, seenOnLeaderboard }: UpsertTrackedTraderInput,
+  {
+    candidate,
+    outcome,
+    seenOnLeaderboard,
+    freshlyComputed,
+  }: UpsertTrackedTraderInput,
 ): Promise<void> {
   const stats = outcome.stats;
   const now = new Date();
@@ -38,7 +52,7 @@ export async function upsertTrackedTrader(
     windowsAppeared: stats.windowsAppeared,
     trustWeight,
     vetted: outcome.passed,
-    lastStatsComputedAt: now,
+    ...(freshlyComputed ? { lastStatsComputedAt: now } : {}),
     ...(seenOnLeaderboard ? { lastSeenOnLeaderboardAt: now } : {}),
   };
 

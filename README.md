@@ -258,16 +258,17 @@ Every knob has a default, a valid range, and a real impact. Loosen carefully —
 
 ### Operations
 
-| Field                 | Default          | Range                                  | What it does                                                                                                                                                        |
-| --------------------- | ---------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `killSwitch`          | `false`          | bool                                   | When **on**, worker does no analysis and sends no notifications. Use during maintenance. The dashboard shows a red banner when it's on.                             |
-| `pollIntervalSec`     | `120`            | ≥ 10                                   | Seconds between polls. Lower = fresher data + more API load. Polymarket's positions endpoint allows ~150 req / 10s; with a pool of 50 traders, 120s is comfortable. |
-| `candidatePoolSize`   | `50`             | ≥ 1                                    | How many top traders to pull from the leaderboard each poll. Larger pool = more potential consensus but slower vetting (≈6s per candidate on cold cache).           |
-| `leaderboardWindows`  | `WEEK,MONTH,ALL` | CSV of `DAY/WEEK/MONTH/ALL`            | Which time windows count toward the `windowsAppeared` consistency gate.                                                                                             |
-| `category`            | `OVERALL`        | enum                                   | Leaderboard category filter (`OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, …).                                                                                         |
-| `notifyChannel`       | `TELEGRAM`       | `TELEGRAM/PUSHOVER/NTFY/EMAIL/CONSOLE` | Which notifier to use. `CONSOLE` writes the alert to the worker log instead of sending — useful for testing without spamming your phone.                            |
-| `alertConfidenceStep` | `10`             | ≥ 0                                    | Once a suggestion is `NOTIFIED`, only re-alert if confidence has risen by at least this many points. Default of 10 prevents alert spam from small fluctuations.     |
-| `exitFraction`        | `0.6`            | 0–1                                    | Fraction of _original_ vetted holders who must have closed their position for an EXIT alert to fire. `0.6` = "fire when ≥ 60% have left."                           |
+| Field                 | Default          | Range                                  | What it does                                                                                                                                                                                                                                                                           |
+| --------------------- | ---------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `killSwitch`          | `false`          | bool                                   | When **on**, worker does no analysis and sends no notifications. Use during maintenance. The dashboard shows a red banner when it's on.                                                                                                                                                |
+| `pollIntervalSec`     | `120`            | ≥ 10                                   | Seconds between polls. Lower = fresher data + more API load. Polymarket's positions endpoint allows ~150 req / 10s; with a pool of 50 traders, 120s is comfortable.                                                                                                                    |
+| `candidatePoolSize`   | `50`             | ≥ 1                                    | How many top traders to pull from the leaderboard each poll. Larger pool = more potential consensus but slower vetting (≈6s per candidate on cold cache).                                                                                                                              |
+| `leaderboardWindows`  | `WEEK,MONTH,ALL` | CSV of `DAY/WEEK/MONTH/ALL`            | Which time windows count toward the `windowsAppeared` consistency gate.                                                                                                                                                                                                                |
+| `category`            | `OVERALL`        | enum                                   | Leaderboard category filter (`OVERALL`, `POLITICS`, `SPORTS`, `CRYPTO`, …).                                                                                                                                                                                                            |
+| `notifyChannel`       | `TELEGRAM`       | `TELEGRAM/PUSHOVER/NTFY/EMAIL/CONSOLE` | Which notifier to use. `CONSOLE` writes the alert to the worker log instead of sending — useful for testing without spamming your phone.                                                                                                                                               |
+| `alertConfidenceStep` | `10`             | ≥ 0                                    | Once a suggestion is `NOTIFIED`, only re-alert if confidence has risen by at least this many points. Default of 10 prevents alert spam from small fluctuations.                                                                                                                        |
+| `exitFraction`        | `0.6`            | 0–1                                    | Fraction of _original_ vetted holders who must have closed their position for an EXIT alert to fire. `0.6` = "fire when ≥ 60% have left."                                                                                                                                              |
+| `vetCacheTtlSec`      | `21600` (6 h)    | ≥ 0                                    | Skip API re-vetting of a trader whose stats were computed within this many seconds. Cached stats are still re-scored against current gates each poll (so config edits apply live). Set to `0` to disable caching. Lower = fresher career stats. Higher = faster polls + less API load. |
 
 ### Vetting gates
 
@@ -555,6 +556,65 @@ sqlite3 data/app.db ".backup data/backups/app-$(date +%F).db"
 ```
 
 (Add to cron on the droplet; keep maybe 14 days of backups.)
+
+### Database growth & manual cleanup
+
+The schema has no automatic pruning. Most tables are bounded (`Config`, `TrackedTrader`, `TraderPosition`, `Market` — positions are actively deleted when a trader exits, the rest upsert), but four grow forever:
+
+| Table             | Growth rate (at 4-min polls)      | 1 year estimate   |
+| ----------------- | --------------------------------- | ----------------- |
+| `WorkerRun`       | ~360 rows/day (1 per poll)        | ~130k rows        |
+| `Suggestion`      | ~5–25 rows/day (per fired signal) | ~3k–9k rows       |
+| `NotificationLog` | 1 row per send attempt            | ~10k rows         |
+| `Market`          | Slow — new markets only           | Tens of thousands |
+
+You won't hit a disk problem for years (SQLite handles multi-GB without issue), but the `/runs` and `/suggestions` dashboard pages get slower without pruning.
+
+**Run this quarterly** (safe — only deletes old heartbeats, expired/dismissed signals, and closed markets that are well past resolution):
+
+```bash
+# Adjust the cutoff windows to taste.
+sqlite3 data/app.db <<'SQL'
+-- WorkerRun heartbeats older than 30 days
+DELETE FROM WorkerRun WHERE startedAt < datetime('now', '-30 days');
+
+-- NotificationLog older than 90 days
+DELETE FROM NotificationLog WHERE sentAt < datetime('now', '-90 days');
+
+-- Suggestions that were never acted on and are older than 180 days.
+-- Keep TAKEN forever (they link to your TakenTrade records).
+DELETE FROM Suggestion
+ WHERE status IN ('EXPIRED', 'DISMISSED')
+   AND createdAt < datetime('now', '-180 days');
+
+-- Closed Markets whose end date is older than 180 days.
+-- These can't appear in new consensus signals.
+DELETE FROM Market
+ WHERE closed = 1
+   AND endDate IS NOT NULL
+   AND endDate < datetime('now', '-180 days');
+
+-- Reclaim freed pages back to the OS.
+VACUUM;
+SQL
+```
+
+**Important:** stop the worker first (`docker compose stop worker`) so the `VACUUM` doesn't fight a live writer. Restart with `docker compose start worker` when done.
+
+**Check sizes any time:**
+
+```bash
+sqlite3 data/app.db "
+SELECT 'WorkerRun', COUNT(*) FROM WorkerRun
+UNION ALL SELECT 'Suggestion', COUNT(*) FROM Suggestion
+UNION ALL SELECT 'NotificationLog', COUNT(*) FROM NotificationLog
+UNION ALL SELECT 'TrackedTrader', COUNT(*) FROM TrackedTrader
+UNION ALL SELECT 'TraderPosition', COUNT(*) FROM TraderPosition
+UNION ALL SELECT 'Market', COUNT(*) FROM Market
+UNION ALL SELECT 'TakenTrade', COUNT(*) FROM TakenTrade;
+"
+ls -lh data/app.db
+```
 
 ---
 
