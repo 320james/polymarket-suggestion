@@ -67,6 +67,24 @@ function StatusTile({
   const durMs =
     startedAt && finishedAt ? finishedAt.getTime() - startedAt.getTime() : null;
 
+  // A WorkerRun row is created at the START of each poll with ok=false
+  // and errorCount=0. Until finishedAt is set we should NOT call that
+  // "errors (0)" — it's an in-flight poll. Once finishedAt populates we
+  // can trust ok + errorCount.
+  const inFlight = lastRun != null && finishedAt == null;
+  let statusValue: string;
+  let statusClass: string;
+  if (inFlight) {
+    statusValue = "in-flight";
+    statusClass = "text-amber-700";
+  } else if (ok) {
+    statusValue = "ok";
+    statusClass = "text-emerald-700";
+  } else {
+    statusValue = `errors (${lastRun?.errorCount ?? 0})`;
+    statusClass = "text-red-700";
+  }
+
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -93,8 +111,8 @@ function StatusTile({
           />
           <StatusStat
             label="Status"
-            value={ok ? "ok" : `errors (${lastRun.errorCount})`}
-            valueClass={ok ? "text-emerald-700" : "text-red-700"}
+            value={statusValue}
+            valueClass={statusClass}
           />
           <StatusStat
             label="Duration"
