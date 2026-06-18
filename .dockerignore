@@ -1,0 +1,27 @@
+# Build artifacts
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+*.tsbuildinfo
+
+# Local data + secrets
+data/*
+!data/.gitkeep
+.env
+.env.local
+
+# Git / editor / OS
+.git
+.gitignore
+.vscode
+.DS_Store
+
+# Docs (not needed at runtime)
+*.md
+
+# CI/test artifacts
+coverage
+.nyc_output

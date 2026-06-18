@@ -31,6 +31,11 @@ import type { ResolvedTrade } from "@poly/shared";
  *          sizeUsd: costUsd }.
  *       3. Reset positions on the conditionId to closed.
  *
+ * Recency: if `closedSince` is provided, cycles whose closing event
+ * (the SELL or REDEEM) is older than that timestamp are NOT emitted, but
+ * the running-inventory bookkeeping still happens. This keeps stats fresh
+ * ("how good is this trader RECENTLY?") without corrupting cycle accounting.
+ *
  * Heuristic notes:
  *   - Polymarket markets resolve once, so any BUYs after a REDEEM on the
  *     same conditionId would be unusual; we treat them as a fresh cycle.
@@ -42,6 +47,7 @@ import type { ResolvedTrade } from "@poly/shared";
 export function buildResolvedTrades(
   trades: Trade[],
   redeems: Activity[],
+  closedSince?: Date,
 ): ResolvedTrade[] {
   type Pos = { size: number; cost: number };
   type Evt =
@@ -63,6 +69,10 @@ export function buildResolvedTrades(
   }
 
   const resolved: ResolvedTrade[] = [];
+  // Trade.timestamp and Activity.timestamp from the Data API are unix SECONDS,
+  // so convert the JS Date (ms) to seconds before comparing.
+  const sinceSec =
+    closedSince != null ? Math.floor(closedSince.getTime() / 1000) : null;
 
   for (const events of byCondition.values()) {
     events.sort((a, b) => a.ts - b.ts);
@@ -83,7 +93,7 @@ export function buildResolvedTrades(
           if (pos.size <= 0) continue; // no inventory to close
           const closed = Math.min(pos.size, t.size);
           const avgEntry = pos.cost / pos.size;
-          if (avgEntry > 0) {
+          if (avgEntry > 0 && (sinceSec == null || ev.ts >= sinceSec)) {
             resolved.push({
               entryPrice: avgEntry,
               exitValue: t.price,
@@ -102,16 +112,19 @@ export function buildResolvedTrades(
         // REDEEM — only the first acts as settlement
         if (conditionSettled) continue;
         conditionSettled = true;
+        const inWindow = sinceSec == null || ev.ts >= sinceSec;
         const winnerOi = pickWinner(positions, ev.r.size);
         for (const [oi, pos] of positions) {
           if (pos.size <= 0) continue;
           const avgEntry = pos.cost / pos.size;
           if (avgEntry <= 0) continue;
-          resolved.push({
-            entryPrice: avgEntry,
-            exitValue: oi === winnerOi ? 1 : 0,
-            sizeUsd: pos.cost,
-          });
+          if (inWindow) {
+            resolved.push({
+              entryPrice: avgEntry,
+              exitValue: oi === winnerOi ? 1 : 0,
+              sizeUsd: pos.cost,
+            });
+          }
           pos.size = 0;
           pos.cost = 0;
         }

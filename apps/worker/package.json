@@ -6,6 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx src/main.ts",
+    "start": "tsx src/main.ts",
     "poll": "RUN_ONCE=1 tsx src/main.ts",
     "vet": "tsx src/scripts/eyeball-vet.ts",
     "markets": "tsx src/scripts/eyeball-markets.ts",

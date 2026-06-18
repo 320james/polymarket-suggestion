@@ -19,6 +19,12 @@ export interface VetInput {
   maxRedeems?: number;
   /** Recent-trades sample to catch cycles closed by SELL in unresolved markets. Default 1000. */
   recentTrades?: number;
+  /**
+   * Only count cycles whose CLOSING event (SELL or REDEEM) is within this
+   * many days. Keeps stats current — a great record from 2 years ago no
+   * longer guarantees a vet pass. Default 90. Set to 0 to disable.
+   */
+  recencyDays?: number;
 }
 
 export interface VetOutcome {
@@ -31,6 +37,8 @@ export interface VetOutcome {
   rawRedeems: number;
   uniqueSettledMarkets: number;
   resolvedTrades: number;
+  /** Recency cutoff actually applied (null = unbounded). */
+  closedSince: Date | null;
 }
 
 /**
@@ -51,6 +59,9 @@ export async function vetTrader(
   const maxMarkets = input.maxMarkets ?? 200;
   const maxRedeems = input.maxRedeems ?? 2000;
   const recentTradesMax = input.recentTrades ?? 1000;
+  const recencyDays = input.recencyDays ?? 90;
+  const closedSince =
+    recencyDays > 0 ? new Date(Date.now() - recencyDays * 86_400_000) : null;
 
   // Step 1+3: pull REDEEMs and a recent-trades sample in parallel
   // (different rate-limit buckets, so no contention).
@@ -94,7 +105,11 @@ export async function vetTrader(
   }
 
   // Step 5: reconstruct + score.
-  const resolved = buildResolvedTrades(trades, redeems);
+  const resolved = buildResolvedTrades(
+    trades,
+    redeems,
+    closedSince ?? undefined,
+  );
   const stats = deriveTraderStats(
     input.proxyAddress,
     resolved,
@@ -112,5 +127,6 @@ export async function vetTrader(
     rawRedeems: redeems.length,
     uniqueSettledMarkets: uniqueSettled.length,
     resolvedTrades: resolved.length,
+    closedSince,
   };
 }

@@ -1,0 +1,52 @@
+# Polymarket Suggestion Engine — production compose file.
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f worker
+#   docker compose ps
+#
+# Both services share `./data` (SQLite WAL file) and read secrets from `.env`.
+# The web port is published on the host so Tailscale/UFW can gate access.
+
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    image: poly-worker:latest
+    container_name: poly-worker
+    env_file: .env
+    environment:
+      # Inside the container the schema sits at /app/prisma/schema.prisma,
+      # so Prisma's relative `file:../data/app.db` resolves to /app/data/app.db,
+      # which matches the bind mount below.
+      DATABASE_URL: ${DATABASE_URL:-file:../data/app.db}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /app/data/app.db"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: poly-web:latest
+    container_name: poly-web
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-file:../data/app.db}
+    volumes:
+      - ./data:/app/data
+    ports:
+      # Bind to all interfaces; UFW + Tailscale (per SETUP.md step 3) keep
+      # the dashboard reachable only over the tailnet.
+      - "${WEB_PORT:-3000}:3000"
+    restart: unless-stopped
+    depends_on:
+      worker:
+        condition: service_started
