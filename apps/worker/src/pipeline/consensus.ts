@@ -59,6 +59,12 @@ export interface BuildConsensusResult {
   tokensConsidered: number;
   tokensSkippedNoPrice: number;
   tokensSkippedNoMarket: number;
+  /**
+   * Count of Gamma chunk fetches that failed after all retries.
+   * Non-fatal — stale cache covers the affected condition IDs — but
+   * worth surfacing so we can correlate with Gamma incidents.
+   */
+  gammaFetchErrors: number;
 }
 
 export async function buildConsensusSignals(
@@ -97,6 +103,7 @@ export async function buildConsensusSignals(
       tokensConsidered: 0,
       tokensSkippedNoPrice: 0,
       tokensSkippedNoMarket: 0,
+      gammaFetchErrors: 0,
     };
   }
 
@@ -158,6 +165,7 @@ export async function buildConsensusSignals(
     tokensConsidered: candidates.length,
     tokensSkippedNoPrice: skippedNoPrice,
     tokensSkippedNoMarket: skippedNoMarket,
+    gammaFetchErrors: marketCache.fetchErrors.length,
   };
 }
 

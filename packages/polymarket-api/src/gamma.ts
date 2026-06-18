@@ -36,36 +36,53 @@ export class GammaApiClient {
 
   /**
    * Fetch markets matching any of the given conditionIds, regardless of
-   * open/closed state. Chunked to keep URL length reasonable
-   * (~30 ids/batch ≈ 2.5 KB).
+   * open/closed state. Chunked to keep URL length reasonable and to limit
+   * the blast radius if Gamma 500s on a particular batch — empirically a
+   * batch of ~30 occasionally trips an internal error. We default to 15.
    *
-   * Missing conditionIds are simply absent from the returned map (callers
-   * must handle that — e.g. unknown market, archived, or already pruned).
+   * Each chunk's open + closed fetches are isolated: a single chunk failure
+   * (after the HTTP layer's retries) is *logged via the returned errors
+   * array* and the rest of the chunks still complete. Callers can fall back
+   * to cached data for the missing IDs.
+   *
+   * Missing conditionIds are simply absent from the returned map.
    */
   async getMarketsByConditionIds(
     conditionIds: string[],
     opts: { chunkSize?: number } = {},
-  ): Promise<Map<string, GammaMarket>> {
+  ): Promise<{ markets: Map<string, GammaMarket>; errors: Error[] }> {
     const out = new Map<string, GammaMarket>();
-    if (conditionIds.length === 0) return out;
+    const errors: Error[] = [];
+    if (conditionIds.length === 0) return { markets: out, errors };
 
     // Dedup just in case the caller passed repeats.
     const unique = [...new Set(conditionIds)];
-    const chunkSize = Math.max(1, Math.min(opts.chunkSize ?? 30, 50));
+    const chunkSize = Math.max(1, Math.min(opts.chunkSize ?? 15, 50));
 
     for (let i = 0; i < unique.length; i += chunkSize) {
       const chunk = unique.slice(i, i + chunkSize);
-      // Open + closed in parallel — independent rate-limit bucket fine.
-      const [openRows, closedRows] = await Promise.all([
+      // Open + closed in parallel — isolate each so one side's failure
+      // doesn't lose the other side's data.
+      const [openRes, closedRes] = await Promise.allSettled([
         this.fetchChunk(chunk, false),
         this.fetchChunk(chunk, true),
       ]);
-      for (const m of [...openRows, ...closedRows]) {
-        const norm = normalizeMarket(m);
-        if (norm) out.set(norm.conditionId, norm);
+      for (const res of [openRes, closedRes]) {
+        if (res.status === "fulfilled") {
+          for (const m of res.value) {
+            const norm = normalizeMarket(m);
+            if (norm) out.set(norm.conditionId, norm);
+          }
+        } else {
+          errors.push(
+            res.reason instanceof Error
+              ? res.reason
+              : new Error(String(res.reason)),
+          );
+        }
       }
     }
-    return out;
+    return { markets: out, errors };
   }
 
   /** Single chunk, single state. */

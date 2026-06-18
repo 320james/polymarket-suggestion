@@ -178,6 +178,17 @@ export async function runPoll(deps: RunPollDeps): Promise<RunPollResult> {
     buysCreated = writeResult.created;
     buysUpdated = writeResult.updated;
     buysToNotify = writeResult.active.filter((r) => r.shouldRenotify);
+    if (consensus.gammaFetchErrors > 0) {
+      // Non-fatal: stale cache covered the missing IDs. Worth surfacing
+      // so we can correlate with Gamma incidents.
+      log.warn(
+        {
+          workerRunId: run.id,
+          gammaFetchErrors: consensus.gammaFetchErrors,
+        },
+        "consensus completed with Gamma fetch errors (stale cache used)",
+      );
+    }
     log.info(
       {
         workerRunId: run.id,

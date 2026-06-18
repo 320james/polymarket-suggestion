@@ -33,6 +33,12 @@ export interface MarketCacheResult {
   missing: string[];
   /** How many we ended up fetching this call (the rest were cache hits). */
   fetched: number;
+  /**
+   * Errors from individual Gamma chunks that failed after all HTTP retries.
+   * The cache falls back to stale rows for those IDs so the poll keeps
+   * moving; callers may want to log this for visibility.
+   */
+  fetchErrors: Error[];
 }
 
 export async function getOrFetchMarkets(
@@ -44,7 +50,7 @@ export async function getOrFetchMarkets(
   const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
   const wanted = [...new Set(conditionIds)].filter(Boolean);
   if (wanted.length === 0) {
-    return { markets: new Map(), missing: [], fetched: 0 };
+    return { markets: new Map(), missing: [], fetched: 0, fetchErrors: [] };
   }
 
   const existing = opts.forceRefresh
@@ -72,14 +78,17 @@ export async function getOrFetchMarkets(
   }
 
   let fetchedRows = new Map<string, GammaMarket>();
+  let fetchErrors: Error[] = [];
   if (stale.length > 0) {
-    fetchedRows = await gamma.getMarketsByConditionIds(stale);
+    const res = await gamma.getMarketsByConditionIds(stale);
+    fetchedRows = res.markets;
+    fetchErrors = res.errors;
     await upsertMany(prisma, [...fetchedRows.values()]);
     for (const [id, m] of fetchedRows) fresh.set(id, m);
   }
 
   const missing = wanted.filter((id) => !fresh.has(id));
-  return { markets: fresh, missing, fetched: fetchedRows.size };
+  return { markets: fresh, missing, fetched: fetchedRows.size, fetchErrors };
 }
 
 function isStale(row: Market, now: number, ttlMs: number): boolean {
