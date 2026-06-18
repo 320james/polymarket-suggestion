@@ -1,0 +1,15 @@
+node_modules
+dist
+.next
+.turbo
+
+# Local data + secrets
+data/*
+!data/.gitkeep
+.env
+.env.local
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,27 @@
+{
+  "name": "@poly/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/main.ts",
+    "poll": "RUN_ONCE=1 tsx src/main.ts",
+    "vet": "tsx src/scripts/eyeball-vet.ts",
+    "markets": "tsx src/scripts/eyeball-markets.ts",
+    "positions": "tsx src/scripts/eyeball-positions.ts",
+    "consensus": "tsx src/scripts/eyeball-consensus.ts"
+  },
+  "dependencies": {
+    "@poly/polymarket-api": "workspace:*",
+    "@poly/shared": "workspace:*",
+    "@prisma/client": "^5.22.0",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

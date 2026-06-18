@@ -1,0 +1,280 @@
+// Prisma schema — Polymarket Suggestion Engine (suggestion-only design)
+//
+// SQLite, single-user. The worker writes; the dashboard reads (and edits
+// Config / marks suggestions taken). Run SQLite in WAL mode at app startup
+// so worker + web can share the file safely:
+//   PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;
+//
+// Address conventions:
+//   - All trader addresses on Polymarket are the PROXY (Gnosis Safe) address,
+//     not the EOA. The Data API's `proxyWallet` field is the canonical id we
+//     store in TrackedTrader.id and reference everywhere else.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Config — singleton row driven by the dashboard. Mirrors ScoringConfig in
+// packages/shared/src/scoring.ts, plus operational settings (poll cadence,
+// candidate pool, notifications, kill switch, alert dedup).
+//
+// Worker bootstrap must `upsert({ where:{id:1}, create:{id:1,...}, update:{} })`
+// to enforce singleton.
+// ────────────────────────────────────────────────────────────────────────────
+model Config {
+  id                    Int      @id @default(1)
+  killSwitch            Boolean  @default(false)
+
+  // --- operational ---
+  candidatePoolSize     Int      @default(50)
+  leaderboardWindows    String   @default("WEEK,MONTH,ALL") // CSV: WEEK|MONTH|ALL (DAY also valid)
+  category              String   @default("OVERALL")        // OVERALL|POLITICS|SPORTS|CRYPTO|...
+  pollIntervalSec       Int      @default(120)
+  notifyChannel         String   @default("TELEGRAM")       // TELEGRAM|PUSHOVER|NTFY|EMAIL
+
+  // Re-alert when confidence rises by ≥ this many points vs lastNotifiedConfidence.
+  alertConfidenceStep   Float    @default(10)
+  // Fed to shouldSuggestExit(): fraction of original holders that must be gone.
+  exitFraction          Float    @default(0.6)
+
+  // --- vetting gates (must clear ALL) ---
+  minResolvedTrades     Int      @default(20)
+  winRateFloor          Float    @default(0.55)
+  minProfitFactor       Float    @default(1.3)
+  minWindowsAppeared    Int      @default(2)
+
+  // --- trust-weight shaping ---
+  pfTarget              Float    @default(2.0)
+  confidenceK           Float    @default(50)
+  favoriteOddsThreshold Float    @default(0.8)
+
+  // --- consensus ---
+  minDistinctHolders    Int      @default(3)
+  consensusScoreMin     Float    @default(1.5)
+  recencyHalfLifeHours  Float    @default(48)
+  maxSlippageCents      Float    @default(4)
+
+  // --- herding guard ---
+  herdingWindowMinutes  Float    @default(30)
+  herdingClusterFrac    Float    @default(0.6)
+  herdingSizeCv         Float    @default(0.2)
+  herdingPenalty        Float    @default(0.5)
+
+  // --- confidence display mapping ---
+  scoreTarget           Float    @default(4.0)
+  holderTarget          Float    @default(6)
+
+  updatedAt             DateTime @updatedAt
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TrackedTrader — top traders the engine watches. Keyed on PROXY address.
+// Stats are derived from /trades + /activity and refreshed when re-vetted.
+// ────────────────────────────────────────────────────────────────────────────
+model TrackedTrader {
+  id                       String   @id          // proxyWallet (0x… 40 hex)
+  username                 String?
+  bestRank                 Int                   // best rank across windows touched
+  pnl                      Float                 // leaderboard pnl (display only)
+  volume                   Float                 // leaderboard vol (display only)
+
+  // Derived from trade history (null until first vet run completes).
+  winRate                  Float?
+  profitFactor             Float?
+  avgRoi                   Float?
+  avgEntryOdds             Float?
+  resolvedTrades           Int      @default(0)
+  windowsAppeared          Int      @default(1)  // 1..3 across WEEK/MONTH/ALL
+  trustWeight              Float    @default(0)
+  vetted                   Boolean  @default(false)
+
+  // Worker sets these explicitly (NOT @updatedAt — that would fire on any
+  // field change and lie about leaderboard freshness).
+  lastSeenOnLeaderboardAt  DateTime?
+  lastStatsComputedAt      DateTime?
+
+  updatedAt                DateTime @updatedAt
+
+  positions                TraderPosition[]
+
+  @@index([vetted])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TraderPosition — current-state view (one row per (trader, tokenId)).
+// Upserted each poll; deleted when the trader no longer holds it.
+//
+// CRITICAL: enteredAt is DERIVED from the trader's on-chain trade history
+// (the timestamp where their running net inventory for this token last
+// crossed 0 → >0). It is what scoring.ts uses for recency + herding.
+//
+// firstObservedAt is purely observational ("the first poll where we saw
+// this position") and exists only for bookkeeping/debugging. Using it for
+// herding would false-fire on the first poll after deployment.
+// ────────────────────────────────────────────────────────────────────────────
+model TraderPosition {
+  id              Int      @id @default(autoincrement())
+  traderId        String
+  trader          TrackedTrader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  conditionId     String
+  tokenId         String                            // CLOB asset id for this outcome
+  outcome         String                            // human label, e.g. "Yes"
+  outcomeIndex    Int
+
+  size            Float                             // outcome tokens held
+  avgPrice        Float                             // weighted entry, 0..1
+  pctOfPortfolio  Float?                            // conviction signal (0..1)
+
+  enteredAt       DateTime                          // derived from trade history (scoring uses THIS)
+  firstObservedAt DateTime @default(now())          // bookkeeping only
+  lastObservedAt  DateTime @default(now())          // updated every poll the position is still held
+
+  @@unique([traderId, tokenId])
+  @@index([conditionId, tokenId])
+  @@index([traderId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Market — Gamma metadata cache. One row per conditionId we touch.
+// Avoids re-hitting Gamma every poll and powers the dashboard's market
+// column without an extra fetch. Refreshed on a TTL (worker logic).
+// ────────────────────────────────────────────────────────────────────────────
+model Market {
+  conditionId      String   @id
+  slug             String?
+  question         String
+  endDate          DateTime?
+  resolutionSource String?
+  outcomes         String                           // JSON: ["Yes","No"]
+  tokens           String                           // JSON: [{tokenId, outcome, outcomeIndex}]
+  closed           Boolean  @default(false)
+  active           Boolean  @default(true)
+  negativeRisk     Boolean  @default(false)
+  fetchedAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([endDate])
+  @@index([active, closed])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Suggestion — one consensus event per (conditionId, tokenId, type).
+// The worker create-or-updates this per poll while the signal stands.
+//
+// originalHolderIds is FROZEN at first fire; supportingIds tracks the
+// current holder set. shouldSuggestExit() compares the two.
+//
+// A type=EXIT row links back to its triggering BUY via relatedSuggestionId.
+// ────────────────────────────────────────────────────────────────────────────
+model Suggestion {
+  id                     Int      @id @default(autoincrement())
+  type                   String                                 // BUY | EXIT
+  conditionId            String
+  marketQuestion         String
+  tokenId                String
+  outcome                String
+  outcomeIndex           Int
+
+  confidence             Float                                  // 0..100 display
+  consensusScore         Float                                  // raw weighted score
+  distinctHolders        Int
+  blendedEntry           Float                                  // trust-weighted, 0..1
+  priceAtSignal          Float                                  // live CLOB price when fired
+  slippageCents          Float
+  alreadyRan             Boolean  @default(false)
+  herdingPenalty         Float    @default(1)                   // 1 = no penalty
+  rationale              String
+
+  originalHolderIds      String                                 // JSON array of proxy addresses, FROZEN
+  supportingIds          String                                 // JSON array, refreshed each poll
+
+  status                 String   @default("NEW")               // NEW|NOTIFIED|TAKEN|DISMISSED|EXITED|EXPIRED
+
+  // Dedup / re-alert bookkeeping.
+  lastNotifiedConfidence Float?
+  lastNotifiedAt         DateTime?
+  notifyCount            Int      @default(0)
+
+  // BUY ↔ EXIT lineage (self-relation). Set on EXIT rows.
+  relatedSuggestionId    Int?
+  relatedSuggestion      Suggestion?  @relation("BuyExit", fields: [relatedSuggestionId], references: [id])
+  exits                  Suggestion[] @relation("BuyExit")
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  takenTrades            TakenTrade[]
+  notifications          NotificationLog[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([conditionId, tokenId, type, status])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TakenTrade — what YOU actually filled. Lets the dashboard compare your
+// real edge vs the suggested entry vs the eventual resolution.
+// ────────────────────────────────────────────────────────────────────────────
+model TakenTrade {
+  id           Int        @id @default(autoincrement())
+  suggestionId Int?
+  suggestion   Suggestion? @relation(fields: [suggestionId], references: [id])
+  conditionId  String
+  outcome      String
+  side         String                                            // BUY | SELL
+  size         Float
+  fillPrice    Float                                             // what YOU got
+  takenAt      DateTime   @default(now())
+  closedPrice  Float?
+  realizedPnl  Float?
+  closedAt     DateTime?
+
+  @@index([suggestionId])
+  @@index([takenAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// NotificationLog — one row per send attempt (success OR failure).
+// Retries (backoff) bump `attempt`. Never crash the worker on a write here.
+// ────────────────────────────────────────────────────────────────────────────
+model NotificationLog {
+  id           Int        @id @default(autoincrement())
+  suggestionId Int
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id])
+  channel      String                                            // TELEGRAM|PUSHOVER|NTFY|EMAIL
+  success      Boolean
+  error        String?
+  attempt      Int        @default(1)
+  sentAt       DateTime   @default(now())
+
+  @@index([sentAt])
+  @@index([suggestionId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// WorkerRun — per-poll heartbeat + summary. Powers a "system status" tile
+// on the dashboard ("last poll 12s ago, 4 vetted, 1 fired").
+// ────────────────────────────────────────────────────────────────────────────
+model WorkerRun {
+  id            Int       @id @default(autoincrement())
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  ok            Boolean   @default(false)
+  candidates    Int       @default(0)
+  vetted        Int       @default(0)
+  positionsSeen Int       @default(0)
+  firings       Int       @default(0)
+  exits         Int       @default(0)
+  notifications Int       @default(0)
+  errorCount    Int       @default(0)
+  notes         String?                                          // short free-form
+
+  @@index([startedAt])
+}

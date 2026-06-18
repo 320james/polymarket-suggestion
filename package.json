@@ -1,0 +1,36 @@
+{
+  "name": "polymarket-suggest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal Polymarket suggestion engine + dashboard (read-only, no trading).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prisma": "prisma",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "vet": "pnpm -C apps/worker vet",
+    "markets": "pnpm -C apps/worker markets",
+    "positions": "pnpm -C apps/worker positions",
+    "consensus": "pnpm -C apps/worker consensus",
+    "dev:worker": "pnpm -C apps/worker dev",
+    "poll": "pnpm -C apps/worker poll",
+    "dev:web": "pnpm -C apps/web dev"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["prisma", "@prisma/engines", "@prisma/client"]
+  },
+  "packageManager": "pnpm@10.18.2+sha512.9fb969fa749b3ade6035e0f109f0b8a60b5d08a1a87fdf72e337da90dcc93336e2280ca4e44f2358a649b83c17959e9993e777c2080879f3801e6f0d999ad3dd"
+}
